@@ -1,9 +1,8 @@
 #!/bin/bash
-#!/usr/local/bin/bash -xv # コマンド処理系の変更例
 #
 # test script of cjoin0
 #
-# usage: [<test-path>/]cjoin0.test [<command-path> [<python-version>]]
+# usage: [<test-path>/]cjoin0_test.bash [<command-path>]
 #
 #            <test-path>は
 #                    「現ディレクトリーからみた」本スクリプトの相対パス
@@ -14,31 +13,21 @@
 #                    またはtest対象コマンドの完全パス
 #                    省略時は本スクリプトと同じディレクトリーを仮定する
 #                    値があるときまたは空値（""）で省略を示したときはあとにつづく<python-version>を指定できる
-#            <python-version>は
-#                    使用するpython処理系のversion（minor versionまで指定可）を指定する
-#                    （例 python2 python2.6 phthon3 python3.4など）
-#                    単にpythonとしたときは現実行環境下でのdefault versionのpythonを使用する
-#                    文字列"python"は大文字/小文字の区別をしない
-#                    省略時はpythonを仮定する
 name=cjoin1 # test対象コマンドの名前
 testpath=$(dirname $0) # 本スクリプト実行コマンドの先頭部($0)から本スクリプトのディレトリー名をとりだす
 cd $testpath # 本スクリプトのあるディレクトリーへ移動
-# if test "$2" = ""; # <python-version>($2)がなければ
-# 	then pythonversion="python" # default versionのpythonとする
-# 	else pythonversion="$2" # <python-version>($2)があれば指定versionのpythonとする
-# fi
 if test "$1" = ""; # <command-path>($1)がなければ
 	then commandpath="." # test対象コマンドは現ディレクトリーにある
 	else commandpath="$1" # <command-path>($1)があればtest対象コマンドは指定のディレクトリーにある
 fi
-com="go run ${commandpath}/${name}.go" # python処理系によるtest対象コマンド実行の先頭部
+com="go run ${commandpath}/${name}.go"
 tmp=/tmp/$$
 
 ERROR_CHECK(){
 	[ "$(echo ${PIPESTATUS[@]} | tr -d ' 0')" = "" ] && return
 	echo $1
-	echo "${pythonversion} ${name}" NG
-	# rm -f $tmp-*
+	echo "${name}" NG
+	rm -f $tmp-*
 	exit 1
 }
 
@@ -148,8 +137,8 @@ FIN
 
 ${com} key=2/3 $tmp-master $tmp-tran > $tmp-ans
 diff $tmp-ans $tmp-out
-[ $? -eq 0 ] ; ERROR_CHECK "TEST3 error"
+[ $? -eq 0 ] ; ERROR_CHECK "TEST4 error"
 
 rm -f $tmp-*
-echo "${pythonversion} ${name}" OK
+echo "${name}" OK
 exit 0
