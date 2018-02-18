@@ -10,7 +10,7 @@ GOLINT=golint
 GOX=gox
 DEPCMD=dep
 DEPENSURE=$(DEPCMD) ensure
-BINARY_NAME=cjoin0
+BINARY_NAME=keycut
 
 all: test clean build
 build:
