@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -151,8 +152,8 @@ func generateOutputFileName(outputFile []string, key string) (outputFileName str
 }
 
 func writeFile(outputFileName string, records [][]string) {
-	if strings.Contains(outputFileName, "/") {
-		dirName := outputFileName[0:strings.LastIndex(outputFileName, "/")]
+	dirName := filepath.Dir(outputFileName)
+	if dirName != "" {
 		err := os.MkdirAll(dirName, 0777)
 		if err != nil {
 			fatal(err)
