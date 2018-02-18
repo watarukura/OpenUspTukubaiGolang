@@ -60,7 +60,7 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 	// 7: string after field specifier
 	outputFile = []string{}
 	sepKey = []string{}
-	isKey := map[string]bool{}
+	// isKey := map[string]bool{}
 	fieldNo := ""
 	startStr := ""
 	remainStr := ""
@@ -70,12 +70,7 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 			fieldNo = s[2]
 			startStr = s[1]
 			remainStr = s[7]
-			// https://qiita.com/hi-nakamura/items/5671eae147ffa68c4466
-			// sepKeyをユニークなsliceにする
-			if !isKey[fieldNo] {
-				isKey[fieldNo] = true
-				sepKey = append(sepKey, fieldNo)
-			}
+			sepKey = append(sepKey, fieldNo)
 			// %の前に文字列がある時
 			if len(startStr) > 0 {
 				outputFile = append(outputFile, startStr)
