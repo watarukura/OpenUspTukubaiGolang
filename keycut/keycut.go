@@ -15,14 +15,22 @@ import (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `
+Usage of %s:
+   %s outputFileNameTemplate inputFileName
+`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 	param := flag.Args()
 	// debug: fmt.Println(param)
 
-	inputRecord, outputFile, sepKey := validateParam(param)
+	inputRecord, outputFileNameTemplate, sepKey := validateParam(param)
 	// validateParam(param)
 
-	keycut(inputRecord, outputFile, sepKey)
+	keycut(inputRecord, outputFileNameTemplate, sepKey)
 }
 
 func fatal(err error) {
@@ -93,12 +101,12 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 	return inputRecord, outputFile, sepKey
 }
 
-func keycut(inputRecord [][]string, outputFile []string, sepKey []string) {
+func keycut(inputRecord [][]string, outputFileTemplate []string, sepKey []string) {
 	sepRecords := separateRecord(inputRecord, sepKey)
 	// fmt.Println(sepRecords)
 
 	for k, v := range sepRecords {
-		outputFileName := generateOutputFileName(outputFile, k)
+		outputFileName := generateOutputFileName(outputFileTemplate, k)
 		// fmt.Println(outputFileName)
 		// fmt.Println(v)
 		writeFile(outputFileName, v)
@@ -129,9 +137,9 @@ func separateRecord(inputRecord [][]string, sepKey []string) map[string][][]stri
 	return sepRecords
 }
 
-func generateOutputFileName(outputFile []string, key string) (outputFileName string) {
+func generateOutputFileName(outputFileTemplate []string, key string) (outputFileName string) {
 	keys := strings.Split(key, " ")
-	for _, sepFileName := range outputFile {
+	for _, sepFileName := range outputFileTemplate {
 		if strings.HasPrefix(sepFileName, "%") {
 			num, _ := strconv.Atoi(sepFileName[1:])
 			num = num - 1
