@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -30,6 +31,7 @@ Usage of %s:
 	startkeyFldNum, endKeyFldNum, records := validateParam(param)
 	// validateParam(param)
 
+	// fmt.Println(startkeyFldNum, endKeyFldNum, records)
 	count(startkeyFldNum, endKeyFldNum, records)
 }
 
@@ -63,6 +65,7 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 	if err != nil {
 		fatal(err)
 	}
+	starKeyFldNum = starKeyFldNum - 1
 
 	endKeyFldNum, err = strconv.Atoi(end)
 	if err != nil {
@@ -83,4 +86,31 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 }
 
 func count(startkeyFldNum int, endKeyFldNum int, records [][]string) {
+	var key []string
+	var keyStr string
+	keyCount := map[string][][]string{}
+	for _, r := range records {
+		// fmt.Println(l)
+		key = r[startkeyFldNum:endKeyFldNum]
+		keyStr = strings.Join(key, " ")
+		keyCount[keyStr] = append(keyCount[keyStr], key)
+	}
+	fmt.Println(keyCount)
+
+	var record []string
+	var countStr string
+	for _, c := range keyCount {
+		record = c[0]
+		countStr = strconv.Itoa(len(c))
+		record = append(record, countStr)
+		records = append(records, record)
+		record = []string{}
+	}
+
+	csvw := csv.NewWriter(os.Stdout)
+	delm, _ := utf8.DecodeLastRuneInString(" ")
+	csvw.Comma = delm
+
+	csvw.WriteAll(records)
+	csvw.Flush()
 }
