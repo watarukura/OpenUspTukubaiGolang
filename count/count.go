@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -88,29 +89,35 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 func count(startkeyFldNum int, endKeyFldNum int, records [][]string) {
 	var key []string
 	var keyStr string
-	keyCount := map[string][][]string{}
+	keyCount := map[string]int{}
 	for _, r := range records {
 		// fmt.Println(l)
 		key = r[startkeyFldNum:endKeyFldNum]
 		keyStr = strings.Join(key, " ")
-		keyCount[keyStr] = append(keyCount[keyStr], key)
+		keyCount[keyStr]++
 	}
-	fmt.Println(keyCount)
+	// fmt.Println(keyCount)
 
 	var record []string
 	var countStr string
-	for _, c := range keyCount {
-		record = c[0]
-		countStr = strconv.Itoa(len(c))
+	var counts [][]string
+	for k, c := range keyCount {
+		record = strings.Split(k, " ")
+		countStr = strconv.Itoa(c)
 		record = append(record, countStr)
-		records = append(records, record)
-		record = []string{}
+		counts = append(counts, record)
 	}
+	// fmt.Println(counts)
+	sort.Slice(counts, func(i, j int) bool {
+		iKey := strings.Join(counts[i][startkeyFldNum:endKeyFldNum], " ")
+		jKey := strings.Join(counts[j][startkeyFldNum:endKeyFldNum], " ")
+		return iKey < jKey
+	})
 
 	csvw := csv.NewWriter(os.Stdout)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
 	csvw.Comma = delm
 
-	csvw.WriteAll(records)
+	csvw.WriteAll(counts)
 	csvw.Flush()
 }
