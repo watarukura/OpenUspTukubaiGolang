@@ -7,12 +7,22 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `
+Usage of %s:
+   %s <FieldNumber> <FieldNumber> ...
+`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 	param := flag.Args()
 	// debug: fmt.Println(param)
@@ -26,7 +36,8 @@ func main() {
 }
 
 func fatal(err error) {
-	fmt.Fprintf(os.Stderr, "%s: %s", os.Args[0], err)
+	_, fn, line, _ := runtime.Caller(1)
+	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
 	os.Exit(1)
 }
 
