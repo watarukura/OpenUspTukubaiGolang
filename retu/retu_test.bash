@@ -64,13 +64,13 @@ diff $tmp-ans $tmp-out
 ###########################################
 #TEST3
 
-# cat << FIN > $tmp-out
-# 1
-# FIN
+cat << FIN > $tmp-out
+1
+FIN
 
-# echo aaa | ${com} - > $tmp-ans
-# diff $tmp-ans $tmp-out
-# [ $? -eq 0 ] ; ERROR_CHECK "TEST3 error"
+echo aaa | ${com} - > $tmp-ans
+diff $tmp-ans $tmp-out
+[ $? -eq 0 ] ; ERROR_CHECK "TEST3 error"
 
 ###########################################
 #TEST4
