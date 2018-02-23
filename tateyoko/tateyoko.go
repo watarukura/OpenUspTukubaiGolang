@@ -10,8 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
-	"strconv"
 	"unicode/utf8"
 )
 
@@ -70,34 +68,19 @@ func validateParam(param []string) (records [][]string) {
 }
 
 func tateyoko(records [][]string) {
-	results := [][]string{}
-	resultsTmp := []string{}
-	transRecord := map[int][]string{}
+	cn := len(records[0])
+	results := make([][]string, cn)
 
 	for _, l := range records {
 		for j, c := range l {
-			transRecord[j] = append(transRecord[j], c)
+			results[j] = append(results[j], c)
 		}
 	}
-	// fmt.Println(transRecord)
-
-	for k, v := range transRecord {
-		resultsTmp = append(resultsTmp, strconv.Itoa(k))
-		resultsTmp = append(resultsTmp, v...)
-		results = append(results, resultsTmp)
-		resultsTmp = nil
-	}
-
-	sort.Slice(results, func(i, j int) bool {
-		return results[i][0] < results[j][0]
-	})
 
 	csvw := csv.NewWriter(os.Stdout)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
 	csvw.Comma = delm
 
-	for _, l := range results {
-		csvw.Write(l[1:])
-	}
+	csvw.WriteAll(results)
 	csvw.Flush()
 }
