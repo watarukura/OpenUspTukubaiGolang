@@ -1,0 +1,103 @@
+package main
+
+import (
+	"bufio"
+	"encoding/csv"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strconv"
+	"unicode/utf8"
+)
+
+func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `
+Usage of %s:
+   %s [<inputFileName>]
+`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		flag.PrintDefaults()
+	}
+
+	flag.Parse()
+	param := flag.Args()
+	// debug: fmt.Println(param)
+
+	records := validateParam(param)
+
+	tateyoko(records)
+}
+
+func fatal(err error) {
+	_, fn, line, _ := runtime.Caller(1)
+	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
+	os.Exit(1)
+}
+
+func validateParam(param []string) (records [][]string) {
+	var file string
+	var reader io.Reader
+	var err error
+	switch len(param) {
+	case 0:
+		reader = bufio.NewReader(os.Stdin)
+	case 1:
+		file = param[0]
+		reader, err = os.OpenFile(file, os.O_RDONLY, 0600)
+		if err != nil {
+			fatal(err)
+		}
+	default:
+		fatal(errors.New("failed to read param"))
+	}
+
+	csvr := csv.NewReader(reader)
+	delm, _ := utf8.DecodeLastRuneInString(" ")
+	csvr.Comma = delm
+	csvr.TrimLeadingSpace = true
+
+	records, err = csvr.ReadAll()
+	if err != nil {
+		fatal(err)
+	}
+
+	return records
+}
+
+func tateyoko(records [][]string) {
+	results := [][]string{}
+	resultsTmp := []string{}
+	transRecord := map[int][]string{}
+
+	for _, l := range records {
+		for j, c := range l {
+			transRecord[j] = append(transRecord[j], c)
+		}
+	}
+	// fmt.Println(transRecord)
+
+	for k, v := range transRecord {
+		resultsTmp = append(resultsTmp, strconv.Itoa(k))
+		resultsTmp = append(resultsTmp, v...)
+		results = append(results, resultsTmp)
+		resultsTmp = nil
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i][0] < results[j][0]
+	})
+
+	csvw := csv.NewWriter(os.Stdout)
+	delm, _ := utf8.DecodeLastRuneInString(" ")
+	csvw.Comma = delm
+
+	for _, l := range results {
+		csvw.Write(l[1:])
+	}
+	csvw.Flush()
+}
