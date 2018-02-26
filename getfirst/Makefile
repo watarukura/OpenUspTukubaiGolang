@@ -10,21 +10,28 @@ GOLINT=golint
 GOX=gox
 DEPCMD=dep
 DEPENSURE=$(DEPCMD) ensure
+BINARY_NAME=getfirst
 
 all: test clean build
 build:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make build; popd; done
+		$(GOX) --osarch "darwin/amd64 linux/amd64 windows/amd64" -output="bin/{{.OS}}_{{.Arch}}/$(BINARY_NAME)"
 install:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make install; popd; done
+		$(GOINSTALL)
 test:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make test; popd; done
+		find . -type f -name "*.go" | grep -v "^./vendor" | xargs gofmt -d -e -s -w -l
+		$(GOLINT) $(go list ./... | grep -v /vendor/)
+		$(GOVET) $(go list ./... | grep -v /vendor/)
+		$(GOTEST) -v ./...
+		./$(BINARY_NAME)_test.bash
 clean:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make clean; popd; done
+		$(GOCLEAN)
+		rm -rf bin/
 #run:
 #		$(GOBUILD) -o $(BINARY_NAME) -v ./...
 #		./$(BINARY_NAME)
 deps:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make deps; popd; done
+		$(GOGET) -d -v .
+		$(DEPENSURE) -update
 
 ## Cross compilation
 #build-linux:
