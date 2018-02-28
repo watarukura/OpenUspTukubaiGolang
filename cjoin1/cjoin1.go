@@ -105,10 +105,12 @@ func cjoin1(fromNum int, toNum int, master string, tran string) ([][]string, [][
 	if err != nil {
 		fatal(err)
 	}
+	defer masterFile.Close()
 	tranFile, err := os.Open(tran)
 	if err != nil {
 		fatal(err)
 	}
+	defer tranFile.Close()
 	csvm := csv.NewReader(masterFile)
 	csvt := csv.NewReader(tranFile)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
