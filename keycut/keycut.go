@@ -44,7 +44,7 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 		fatal(errors.New("failed to read param"))
 	}
 
-	inputFileName, err := os.OpenFile(param[1], os.O_RDONLY, 0600)
+	inputFileName, err := os.Open(param[1])
 	if err != nil {
 		fatal(err)
 	}

@@ -55,7 +55,7 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, starSum
 		reader = bufio.NewReader(os.Stdin)
 	case 5:
 		start, end, startSum, endSum, file = param[0], param[1], param[2], param[3], param[4]
-		reader, err = os.OpenFile(file, os.O_RDONLY, 0600)
+		reader, err = os.Open(file)
 		if err != nil {
 			fatal(err)
 		}

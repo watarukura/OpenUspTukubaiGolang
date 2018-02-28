@@ -46,7 +46,7 @@ func validateParam(param []string) (records [][]string) {
 		reader = bufio.NewReader(os.Stdin)
 	case 1:
 		file = param[0]
-		reader, err = os.OpenFile(file, os.O_RDONLY, 0600)
+		reader, err = os.Open(file)
 		if err != nil {
 			fatal(err)
 		}

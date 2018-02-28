@@ -96,11 +96,11 @@ func validateParam(param []string) (int, int, string, string) {
 }
 
 func cjoin2(fromNum int, toNum int, master string, tran string) [][]string {
-	masterFile, err := os.OpenFile(master, os.O_RDONLY, 0600)
+	masterFile, err := os.Open(master)
 	if err != nil {
 		fatal(err)
 	}
-	tranFile, err := os.OpenFile(tran, os.O_RDONLY, 0600)
+	tranFile, err := os.Open(tran)
 	if err != nil {
 		fatal(err)
 	}
