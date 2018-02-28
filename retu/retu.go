@@ -36,7 +36,6 @@ func fatal(err error) {
 
 func retu(param []string) {
 	var file io.Reader
-	var err error
 	if len(param) != 0 {
 		if len(param) != 1 {
 			fatal(errors.New("failed to read param"))
@@ -45,10 +44,12 @@ func retu(param []string) {
 		if param[0] == "-" {
 			file = os.Stdin
 		} else {
-			file, err = os.Open(param[0])
+			f, err := os.Open(param[0])
 			if err != nil {
 				fatal(err)
 			}
+			defer f.Close()
+			file = f
 		}
 	} else {
 		file = os.Stdin

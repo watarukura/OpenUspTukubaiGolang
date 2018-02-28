@@ -46,10 +46,12 @@ func validateParam(param []string) (records [][]string) {
 		reader = bufio.NewReader(os.Stdin)
 	case 1:
 		file = param[0]
-		reader, err = os.Open(file)
+		f, err := os.Open(file)
 		if err != nil {
 			fatal(err)
 		}
+		defer f.Close()
+		reader = bufio.NewReader(f)
 	default:
 		fatal(errors.New("failed to read param"))
 	}

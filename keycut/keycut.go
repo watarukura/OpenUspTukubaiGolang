@@ -48,6 +48,7 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 	if err != nil {
 		fatal(err)
 	}
+	defer inputFileName.Close()
 
 	csv := csv.NewReader(inputFileName)
 	delm, _ := utf8.DecodeLastRuneInString(" ")

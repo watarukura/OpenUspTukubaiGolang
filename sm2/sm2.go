@@ -55,10 +55,12 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, starSum
 		reader = bufio.NewReader(os.Stdin)
 	case 5:
 		start, end, startSum, endSum, file = param[0], param[1], param[2], param[3], param[4]
-		reader, err = os.Open(file)
+		f, err := os.Open(file)
 		if err != nil {
 			fatal(err)
 		}
+		defer f.Close()
+		reader = bufio.NewReader(f)
 	default:
 		fatal(errors.New("failed to read param"))
 	}

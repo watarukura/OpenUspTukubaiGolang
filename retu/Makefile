@@ -10,7 +10,7 @@ GOLINT=golint
 GOX=gox
 DEPCMD=dep
 DEPENSURE=$(DEPCMD) ensure
-BINARY_NAME=count
+BINARY_NAME=retu
 
 all: test clean build
 build:
