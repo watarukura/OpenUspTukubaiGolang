@@ -11,20 +11,20 @@ GOX=gox
 DEPCMD=dep
 DEPENSURE=$(DEPCMD) ensure
 
-all: test clean build
+all: test clean deps build
 build:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make build; popd; done
+		find . -maxdepth 1 -type d | grep -v .git | grep -v "\.$$" | while read dir; do make build -C $${dir}; done
 install:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make install; popd; done
+		find . -maxdepth 1 -type d | grep -v .git | grep -v "\.$$" | while read dir; do make install -C $${dir}; done
 test:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make test; popd; done
+		find . -maxdepth 1 -type d | grep -v .git | grep -v "\.$$" | while read dir; do make test -C $${dir}; done
 clean:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make clean; popd; done
+		find . -maxdepth 1 -type d | grep -v .git | grep -v "\.$$" | while read dir; do make clean -C $${dir}; done
 #run:
 #		$(GOBUILD) -o $(BINARY_NAME) -v ./...
 #		./$(BINARY_NAME)
 deps:
-		for dir in $(find . -type d -maxdepth 1 | grep -v .git); do pushd ${dir}; make deps; popd; done
+		find . -maxdepth 1 -type d | grep -v .git | grep -v "\.$$" | while read dir; do make deps -C $${dir}; done
 
 ## Cross compilation
 #build-linux:
