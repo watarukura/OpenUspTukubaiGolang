@@ -13,6 +13,12 @@ import (
 	"unicode/utf8"
 )
 
+var writer io.Writer
+
+func init() {
+	writer = os.Stdout
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `
@@ -79,7 +85,7 @@ func tateyoko(records [][]string) {
 		}
 	}
 
-	csvw := csv.NewWriter(os.Stdout)
+	csvw := csv.NewWriter(writer)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
 	csvw.Comma = delm
 
