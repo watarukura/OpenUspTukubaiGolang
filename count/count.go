@@ -16,27 +16,51 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	exitCodeOK = iota
+	exitCodeNG
+	exitCodeParseFlagErr
+	exitCodeFileOpenErr
+	exitCodeFlagErr
+	exitCodeCsvFormatErr
+)
+
+type cli struct {
+	outStream, errStream io.Writer
+}
+
 func main() {
-	flag.Usage = func() {
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr}
+	os.Exit(cli.run(os.Args[1:]))
+}
+
+func (c *cli) run(args []string) int {
+	flags := flag.NewFlagSet("count", flag.ContinueOnError)
+	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, `
 Usage of %s:
    %s <startKeyFieldNumber> <endKeyFieldNumber> [<inputFileName>]
 `, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-		flag.PrintDefaults()
+		flags.PrintDefaults()
 	}
 
-	flag.Parse()
-	param := flag.Args()
+	if err := flags.Parse(args); err != nil {
+		return exitCodeParseFlagErr
+	}
+	param := flags.Args()
 	// debug: fmt.Println(param)
 
 	startkeyFldNum, endKeyFldNum, records := validateParam(param)
 	// validateParam(param)
 
 	// fmt.Println(startkeyFldNum, endKeyFldNum, records)
-	count(startkeyFldNum, endKeyFldNum, records)
+	output := count(startkeyFldNum, endKeyFldNum, records)
+	writeCsv(c.outStream, output)
+
+	return exitCodeOK
 }
 
-func fatal(err error) {
+func fatal(err error, errorCode int) {
 	_, fn, line, _ := runtime.Caller(1)
 	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
 	os.Exit(1)
@@ -56,23 +80,23 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 		start, end, file = param[0], param[1], param[2]
 		f, err := os.Open(file)
 		if err != nil {
-			fatal(err)
+			fatal(err, exitCodeFileOpenErr)
 		}
 		defer f.Close()
 		reader = bufio.NewReader(f)
 	default:
-		fatal(errors.New("failed to read param"))
+		fatal(errors.New("failed to read param"), exitCodeFlagErr)
 	}
 
 	starKeyFldNum, err = strconv.Atoi(start)
 	if err != nil {
-		fatal(err)
+		fatal(err, exitCodeFlagErr)
 	}
 	starKeyFldNum = starKeyFldNum - 1
 
 	endKeyFldNum, err = strconv.Atoi(end)
 	if err != nil {
-		fatal(err)
+		fatal(err, exitCodeFlagErr)
 	}
 
 	csvr := csv.NewReader(reader)
@@ -82,13 +106,13 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 
 	records, err = csvr.ReadAll()
 	if err != nil {
-		fatal(err)
+		fatal(err, exitCodeCsvFormatErr)
 	}
 
 	return starKeyFldNum, endKeyFldNum, records
 }
 
-func count(startkeyFldNum int, endKeyFldNum int, records [][]string) {
+func count(startkeyFldNum int, endKeyFldNum int, records [][]string) (counts [][]string) {
 	var key []string
 	var keyStr string
 	keyCount := map[string]int{}
@@ -102,7 +126,6 @@ func count(startkeyFldNum int, endKeyFldNum int, records [][]string) {
 
 	var record []string
 	var countStr string
-	var counts [][]string
 	for k, c := range keyCount {
 		record = strings.Split(k, " ")
 		countStr = strconv.Itoa(c)
@@ -116,10 +139,14 @@ func count(startkeyFldNum int, endKeyFldNum int, records [][]string) {
 		return iKey < jKey
 	})
 
-	csvw := csv.NewWriter(os.Stdout)
+	return counts
+}
+
+func writeCsv(writer io.Writer, records [][]string) {
+	csvw := csv.NewWriter(writer)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
 	csvw.Comma = delm
 
-	csvw.WriteAll(counts)
+	csvw.WriteAll(records)
 	csvw.Flush()
 }
