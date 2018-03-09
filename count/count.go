@@ -27,11 +27,12 @@ const (
 
 type cli struct {
 	outStream, errStream io.Writer
+	inStream             io.Reader
 }
 
 func main() {
-	cli := &cli{outStream: os.Stdout, errStream: os.Stderr}
-	os.Exit(cli.run(os.Args[1:]))
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr, inStream: os.Stdin}
+	os.Exit(cli.run(os.Args))
 }
 
 func (c *cli) run(args []string) int {
@@ -44,13 +45,13 @@ Usage of %s:
 		flags.PrintDefaults()
 	}
 
-	if err := flags.Parse(args); err != nil {
+	if err := flags.Parse(args[1:]); err != nil {
 		return exitCodeParseFlagErr
 	}
 	param := flags.Args()
 	// debug: fmt.Println(param)
 
-	startkeyFldNum, endKeyFldNum, records := validateParam(param)
+	startkeyFldNum, endKeyFldNum, records := validateParam(param, c.inStream)
 	// validateParam(param)
 
 	// fmt.Println(startkeyFldNum, endKeyFldNum, records)
@@ -63,10 +64,10 @@ Usage of %s:
 func fatal(err error, errorCode int) {
 	_, fn, line, _ := runtime.Caller(1)
 	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(1)
+	os.Exit(errorCode)
 }
 
-func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records [][]string) {
+func validateParam(param []string, inStream io.Reader) (starKeyFldNum int, endKeyFldNum int, records [][]string) {
 	var start string
 	var end string
 	var file string
@@ -75,7 +76,7 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 	switch len(param) {
 	case 2:
 		start, end = param[0], param[1]
-		reader = bufio.NewReader(os.Stdin)
+		reader = bufio.NewReader(inStream)
 	case 3:
 		start, end, file = param[0], param[1], param[2]
 		f, err := os.Open(file)
