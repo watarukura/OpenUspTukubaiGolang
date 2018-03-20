@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 )
 
-func TestCountFileInput(t *testing.T) {
+func TestGetLastFileInput(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &cli{outStream: outStream, errStream: errStream}
 
@@ -16,11 +17,11 @@ func TestCountFileInput(t *testing.T) {
 	}{
 		{
 			input: "1 1 testdata/TEST1.1.txt",
-			want:  "001 2\n002 2\n",
+			want:  "001 1 942\n002 -123.0 111\n003 aaa bbb\n",
 		},
 		{
 			input: "1 2 testdata/TEST2.1.txt",
-			want:  "001 江頭 2\n002 上山田 1\n002 上田 1\n",
+			want:  "001 江頭 1 942\n002 上山田 -123.0 111\n002 上田 123.0 11\n",
 		},
 	}
 
@@ -28,7 +29,7 @@ func TestCountFileInput(t *testing.T) {
 		outStream.Reset()
 		errStream.Reset()
 
-		args := append([]string{"count"}, strings.Split(c.input, " ")...)
+		args := append([]string{"getfirst"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
 		if status != exitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
@@ -40,7 +41,7 @@ func TestCountFileInput(t *testing.T) {
 	}
 }
 
-func TestCountStdInput(t *testing.T) {
+func TestGetLastStdInput(t *testing.T) {
 	outStream, errStream, inStream := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 
 	cases := []struct {
@@ -50,13 +51,13 @@ func TestCountStdInput(t *testing.T) {
 	}{
 		{
 			input:      "1 1",
-			inputStdin: "001 1 942\n001 1.3 421\n002 -123.0 111\n002 123.0 11\n",
-			want:       "001 2\n002 2\n",
+			inputStdin: "001 1 942\n001 1.3 421\n002 -123.0 111\n002 123.0 11\n003 aaa bbb\n",
+			want:       "001 1 942\n002 -123.0 111\n003 aaa bbb\n",
 		},
 		{
 			input:      "1 2",
 			inputStdin: "001 江頭 1 942\n001 江頭 1.3 421\n002 上山田 -123.0 111\n002 上田 123.0 11\n",
-			want:       "001 江頭 2\n002 上山田 1\n002 上田 1\n",
+			want:       "001 江頭 1 942\n002 上山田 -123.0 111\n002 上田 123.0 11\n",
 		},
 	}
 
@@ -66,7 +67,8 @@ func TestCountStdInput(t *testing.T) {
 		inStream = bytes.NewBufferString(c.inputStdin)
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
-		args := append([]string{"count"}, strings.Split(c.input, " ")...)
+		args := append([]string{"getfirst"}, strings.Split(c.input, " ")...)
+		fmt.Println(args)
 		status := cli.run(args)
 		if status != exitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)

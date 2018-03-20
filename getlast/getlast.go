@@ -9,14 +9,26 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
+type cli struct {
+	outStream, errStream io.Writer
+	inStream             io.Reader
+}
+
 func main() {
-	flag.Usage = func() {
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr, inStream: os.Stdin}
+	os.Exit(cli.run(os.Args))
+}
+
+func (c *cli) run(args []string) int {
+	flags := flag.NewFlagSet("getfirst", flag.ContinueOnError)
+	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, `
 Usage of %s:
    %s <startKeyFieldNumber> <endKeyFieldNumber> [<inputFileName>]
@@ -28,20 +40,16 @@ Usage of %s:
 	param := flag.Args()
 	// debug: fmt.Println(param)
 
-	startkeyFldNum, endKeyFldNum, records := validateParam(param)
+	startkeyFldNum, endKeyFldNum, records := validateParam(param, c.inStream)
 	// validateParam(param)
 
 	// fmt.Println(startkeyFldNum, endKeyFldNum, records)
-	getlast(startkeyFldNum, endKeyFldNum, records)
+	getlast(startkeyFldNum, endKeyFldNum, records, c.outStream)
+
+	return util.ExitCodeOK
 }
 
-func fatal(err error) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(1)
-}
-
-func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records [][]string) {
+func validateParam(param []string, inStream io.Reader) (starKeyFldNum int, endKeyFldNum int, records [][]string) {
 	var start string
 	var end string
 	var file string
@@ -50,28 +58,28 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 	switch len(param) {
 	case 2:
 		start, end = param[0], param[1]
-		reader = bufio.NewReader(os.Stdin)
+		reader = bufio.NewReader(inStream)
 	case 3:
 		start, end, file = param[0], param[1], param[2]
 		f, err := os.Open(file)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
 		defer f.Close()
 		reader = bufio.NewReader(f)
 	default:
-		fatal(errors.New("failed to read param"))
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	starKeyFldNum, err = strconv.Atoi(start)
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	starKeyFldNum = starKeyFldNum - 1
 
 	endKeyFldNum, err = strconv.Atoi(end)
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 
 	csvr := csv.NewReader(reader)
@@ -81,14 +89,14 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, records
 
 	records, err = csvr.ReadAll()
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeCsvFormatErr)
 	}
 
 	return starKeyFldNum, endKeyFldNum, records
 }
 
-func getlast(startkeyFldNum int, endKeyFldNum int, records [][]string) {
-	csvw := csv.NewWriter(os.Stdout)
+func getlast(startkeyFldNum int, endKeyFldNum int, records [][]string, outStream io.Writer) {
+	csvw := csv.NewWriter(outStream)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
 	csvw.Comma = delm
 
