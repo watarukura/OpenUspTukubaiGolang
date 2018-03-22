@@ -27,7 +27,7 @@ func main() {
 }
 
 func (c *cli) run(args []string) int {
-	flags := flag.NewFlagSet("getfirst", flag.ContinueOnError)
+	flags := flag.NewFlagSet("getlast", flag.ContinueOnError)
 	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, `
 Usage of %s:
@@ -36,9 +36,11 @@ Usage of %s:
 		flag.PrintDefaults()
 	}
 
-	flag.Parse()
-	param := flag.Args()
-	// debug: fmt.Println(param)
+	if err := flags.Parse(args[1:]); err != nil {
+		return util.ExitCodeParseFlagErr
+	}
+	param := flags.Args()
+	// fmt.Println(param)
 
 	startkeyFldNum, endKeyFldNum, records := validateParam(param, c.inStream)
 	// validateParam(param)
