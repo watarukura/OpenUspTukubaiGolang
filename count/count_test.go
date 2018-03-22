@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 func TestCountFileInput(t *testing.T) {
@@ -30,8 +32,8 @@ func TestCountFileInput(t *testing.T) {
 
 		args := append([]string{"count"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
-		if status != exitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
+		if status != util.ExitCodeOK {
+			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
@@ -68,8 +70,8 @@ func TestCountStdInput(t *testing.T) {
 
 		args := append([]string{"count"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
-		if status != exitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
+		if status != util.ExitCodeOK {
+			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
