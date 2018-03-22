@@ -9,17 +9,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"unicode/utf8"
-)
 
-const (
-	exitCodeOK = iota
-	exitCodeNG
-	exitCodeParseFlagErr
-	exitCodeFileOpenErr
-	exitCodeFlagErr
-	exitCodeCsvFormatErr
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 type cli struct {
@@ -43,7 +35,7 @@ Usage of %s:
 	}
 
 	if err := flags.Parse(args[1:]); err != nil {
-		return exitCodeParseFlagErr
+		return util.ExitCodeParseFlagErr
 	}
 	param := flags.Args()
 	// fmt.Println(param)
@@ -51,15 +43,9 @@ Usage of %s:
 	records := validateParam(param, c.inStream)
 
 	output := tateyoko(records)
-	writeCsv(c.outStream, output)
+	util.WriteCsv(c.outStream, output)
 
-	return exitCodeOK
-}
-
-func fatal(err error, errorCode int) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(errorCode)
+	return util.ExitCodeOK
 }
 
 func validateParam(param []string, inStream io.Reader) (records [][]string) {
@@ -73,12 +59,12 @@ func validateParam(param []string, inStream io.Reader) (records [][]string) {
 		file = param[0]
 		f, err := os.Open(file)
 		if err != nil {
-			fatal(err, exitCodeFileOpenErr)
+			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
 		defer f.Close()
 		reader = bufio.NewReader(f)
 	default:
-		fatal(errors.New("failed to read param"), exitCodeFlagErr)
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	csvr := csv.NewReader(reader)
@@ -88,7 +74,7 @@ func validateParam(param []string, inStream io.Reader) (records [][]string) {
 
 	records, err = csvr.ReadAll()
 	if err != nil {
-		fatal(err, exitCodeCsvFormatErr)
+		util.Fatal(err, util.ExitCodeCsvFormatErr)
 	}
 
 	return records
@@ -104,13 +90,4 @@ func tateyoko(records [][]string) (results [][]string) {
 		}
 	}
 	return results
-}
-
-func writeCsv(writer io.Writer, records [][]string) {
-	csvw := csv.NewWriter(writer)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvw.Comma = delm
-
-	csvw.WriteAll(records)
-	csvw.Flush()
 }

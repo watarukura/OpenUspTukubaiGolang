@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 func TestTateyokoStdInput(t *testing.T) {
@@ -30,8 +32,8 @@ func TestTateyokoStdInput(t *testing.T) {
 
 		args := []string{"tateyoko"}
 		status := cli.run(args)
-		if status != exitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
+		if status != util.ExitCodeOK {
+			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
@@ -61,8 +63,8 @@ func TestTateyokoFileInput(t *testing.T) {
 
 		args := append([]string{"tateyoko"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
-		if status != exitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
+		if status != util.ExitCodeOK {
+			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
