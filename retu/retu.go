@@ -8,12 +8,24 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
+type cli struct {
+	outStream, errStream io.Writer
+	inStream             io.Reader
+}
+
 func main() {
-	flag.Usage = func() {
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr, inStream: os.Stdin}
+	os.Exit(cli.run(os.Args))
+}
+
+func (c *cli) run(args []string) int {
+	flags := flag.NewFlagSet("getlast", flag.ContinueOnError)
+	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, `
 Usage of %s:
    %s [<inputFileName>]
@@ -21,38 +33,36 @@ Usage of %s:
 		flag.PrintDefaults()
 	}
 
-	flag.Parse()
-	param := flag.Args()
+	if err := flags.Parse(args[1:]); err != nil {
+		return util.ExitCodeParseFlagErr
+	}
+	param := flags.Args()
 	// debug: fmt.Println(param)
 
-	retu(param)
+	retu(param, c.inStream, c.outStream)
+
+	return util.ExitCodeOK
 }
 
-func fatal(err error) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(1)
-}
-
-func retu(param []string) {
+func retu(param []string, inStream io.Reader, outStream io.Writer) {
 	var file io.Reader
 	if len(param) != 0 {
 		if len(param) != 1 {
-			fatal(errors.New("failed to read param"))
+			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 		}
 
 		if param[0] == "-" {
-			file = os.Stdin
+			file = inStream
 		} else {
 			f, err := os.Open(param[0])
 			if err != nil {
-				fatal(err)
+				util.Fatal(err, util.ExitCodeFileOpenErr)
 			}
 			defer f.Close()
 			file = f
 		}
 	} else {
-		file = os.Stdin
+		file = inStream
 	}
 	scanner := bufio.NewScanner(file)
 	nf := 0
@@ -60,7 +70,7 @@ func retu(param []string) {
 	for scanner.Scan() {
 		nf = len(strings.Fields(scanner.Text()))
 		if nf != prev {
-			fmt.Println(nf)
+			fmt.Fprintln(outStream, nf)
 		}
 		prev = nf
 	}
