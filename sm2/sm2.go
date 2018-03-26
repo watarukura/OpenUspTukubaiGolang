@@ -9,39 +9,52 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
-func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
+const usageText = `
 Usage of %s:
    %s <startKeyFieldNumber> <endKeyFieldNumber>  <startSummaryFieldNumber> <endSummaryFieldNumber> [<inputFileName>]
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+`
+
+type cli struct {
+	outStream, errStream io.Writer
+	inStream             io.Reader
+}
+
+func main() {
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr, inStream: os.Stdin}
+	os.Exit(cli.run(os.Args))
+}
+
+func (c *cli) run(args []string) int {
+	flags := flag.NewFlagSet("getlast", flag.ContinueOnError)
+	flags.Usage = func() {
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
-	flag.Parse()
-	param := flag.Args()
+	if err := flags.Parse(args[1:]); err != nil {
+		return util.ExitCodeParseFlagErr
+	}
+	param := flags.Args()
 	// debug: fmt.Println(param)
 
-	startkeyFldNum, endKeyFldNum, startSumFldNum, endSumFldNum, records := validateParam(param)
+	startkeyFldNum, endKeyFldNum, startSumFldNum, endSumFldNum, records := validateParam(param, c.inStream)
 	// validateParam(param)
 
-	sm2(startkeyFldNum, endKeyFldNum, startSumFldNum, endSumFldNum, records)
+	results := sm2(startkeyFldNum, endKeyFldNum, startSumFldNum, endSumFldNum, records)
+	util.WriteCsv(c.outStream, results)
+
+	return util.ExitCodeOK
 }
 
-func fatal(err error) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(1)
-}
-
-func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, starSumFldNum int, endSumFldNum int, records [][]string) {
+func validateParam(param []string, inStream io.Reader) (starKeyFldNum int, endKeyFldNum int, starSumFldNum int, endSumFldNum int, records [][]string) {
 	var start string
 	var end string
 	var startSum string
@@ -52,48 +65,48 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, starSum
 	switch len(param) {
 	case 4:
 		start, end, startSum, endSum = param[0], param[1], param[2], param[3]
-		reader = bufio.NewReader(os.Stdin)
+		reader = bufio.NewReader(inStream)
 	case 5:
 		start, end, startSum, endSum, file = param[0], param[1], param[2], param[3], param[4]
 		f, err := os.Open(file)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
 		defer f.Close()
 		reader = bufio.NewReader(f)
 	default:
-		fatal(errors.New("failed to read param"))
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	starKeyFldNum, err = strconv.Atoi(start)
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeParseFlagErr)
 	}
 	if starKeyFldNum == 0 {
 		endKeyFldNum, err = strconv.Atoi(end)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeParseFlagErr)
 		}
 		if endKeyFldNum != 0 {
-			fatal(errors.New("failed to read param: endKeyFldNum"))
+			util.Fatal(errors.New("failed to read param: endKeyFldNum"), util.ExitCodeParseFlagErr)
 		}
 	} else {
 		starKeyFldNum = starKeyFldNum - 1
 		endKeyFldNum, err = strconv.Atoi(end)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeParseFlagErr)
 		}
 	}
 
 	starSumFldNum, err = strconv.Atoi(startSum)
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeParseFlagErr)
 	}
 	starSumFldNum = starSumFldNum - 1
 
 	endSumFldNum, err = strconv.Atoi(endSum)
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeParseFlagErr)
 	}
 
 	csvr := csv.NewReader(reader)
@@ -103,13 +116,13 @@ func validateParam(param []string) (starKeyFldNum int, endKeyFldNum int, starSum
 
 	records, err = csvr.ReadAll()
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeCsvFormatErr)
 	}
 
 	return starKeyFldNum, endKeyFldNum, starSumFldNum, endSumFldNum, records
 }
 
-func sm2(startKeyFldNum int, endKeyFldNum int, startSumFldNum int, endSumFldNum int, records [][]string) {
+func sm2(startKeyFldNum int, endKeyFldNum int, startSumFldNum int, endSumFldNum int, records [][]string) (sums [][]string) {
 	var key []string
 	var keyStr string
 	maxPrec := []int{}
@@ -136,7 +149,7 @@ func sm2(startKeyFldNum int, endKeyFldNum int, startSumFldNum int, endSumFldNum 
 			// fmt.Println("s:", s)
 			n, err := strconv.ParseFloat(s, 64)
 			if err != nil {
-				fatal(err)
+				util.Fatal(err, util.ExitCodeNG)
 			}
 			// fmt.Println("keySum[keyStr][i]:", keySum[keyStr][i])
 			tmpPrec := 0
@@ -155,7 +168,6 @@ func sm2(startKeyFldNum int, endKeyFldNum int, startSumFldNum int, endSumFldNum 
 
 	var record []string
 	var sumStr []string
-	var sums [][]string
 	for k, ss := range keySum {
 		record = strings.Split(k, " ")
 		for i, s := range ss {
@@ -171,10 +183,5 @@ func sm2(startKeyFldNum int, endKeyFldNum int, startSumFldNum int, endSumFldNum 
 		return iKey < jKey
 	})
 
-	csvw := csv.NewWriter(os.Stdout)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvw.Comma = delm
-
-	csvw.WriteAll(sums)
-	csvw.Flush()
+	return sums
 }

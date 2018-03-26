@@ -14,6 +14,11 @@ import (
 	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
+const usageText = `
+Usage of %s:
+   %s [<inputFileName>]
+`
+
 type cli struct {
 	outStream, errStream io.Writer
 	inStream             io.Reader
@@ -27,10 +32,7 @@ func main() {
 func (c *cli) run(args []string) int {
 	flags := flag.NewFlagSet("tateyoko", flag.ContinueOnError)
 	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
-Usage of %s:
-   %s [<inputFileName>]
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flags.PrintDefaults()
 	}
 

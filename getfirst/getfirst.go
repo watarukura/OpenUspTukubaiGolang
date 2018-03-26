@@ -9,20 +9,17 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
-const (
-	exitCodeOK = iota
-	exitCodeNG
-	exitCodeParseFlagErr
-	exitCodeFileOpenErr
-	exitCodeFlagErr
-	exitCodeCsvFormatErr
-)
+const usageText = `
+Usage of %s:
+   %s <startKeyFieldNumber> <endKeyFieldNumber> [<inputFileName>]
+`
 
 type cli struct {
 	outStream, errStream io.Writer
@@ -37,15 +34,12 @@ func main() {
 func (c *cli) run(args []string) int {
 	flags := flag.NewFlagSet("getfirst", flag.ContinueOnError)
 	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
-Usage of %s:
-   %s <startKeyFieldNumber> <endKeyFieldNumber> [<inputFileName>]
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
 	if err := flags.Parse(args[1:]); err != nil {
-		return exitCodeParseFlagErr
+		return util.ExitCodeParseFlagErr
 	}
 	param := flags.Args()
 	// fmt.Println(param)
@@ -56,13 +50,7 @@ Usage of %s:
 	// fmt.Println(startkeyFldNum, endKeyFldNum, records)
 	getfirst(startkeyFldNum, endKeyFldNum, records, c.outStream)
 
-	return exitCodeOK
-}
-
-func fatal(err error, errorCode int) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(errorCode)
+	return util.ExitCodeOK
 }
 
 func validateParam(param []string, inStream io.Reader) (starKeyFldNum int, endKeyFldNum int, records [][]string) {
@@ -79,23 +67,23 @@ func validateParam(param []string, inStream io.Reader) (starKeyFldNum int, endKe
 		start, end, file = param[0], param[1], param[2]
 		f, err := os.Open(file)
 		if err != nil {
-			fatal(err, exitCodeFileOpenErr)
+			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
 		defer f.Close()
 		reader = bufio.NewReader(f)
 	default:
-		fatal(errors.New("failed to read param"), exitCodeFlagErr)
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	starKeyFldNum, err = strconv.Atoi(start)
 	if err != nil {
-		fatal(err, exitCodeFlagErr)
+		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	starKeyFldNum = starKeyFldNum - 1
 
 	endKeyFldNum, err = strconv.Atoi(end)
 	if err != nil {
-		fatal(err, exitCodeFlagErr)
+		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 
 	csvr := csv.NewReader(reader)
@@ -105,7 +93,7 @@ func validateParam(param []string, inStream io.Reader) (starKeyFldNum int, endKe
 
 	records, err = csvr.ReadAll()
 	if err != nil {
-		fatal(err, exitCodeCsvFormatErr)
+		util.Fatal(err, util.ExitCodeCsvFormatErr)
 	}
 
 	return starKeyFldNum, endKeyFldNum, records
