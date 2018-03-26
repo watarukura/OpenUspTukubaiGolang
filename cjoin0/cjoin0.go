@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"errors"
 	"flag"
@@ -14,6 +15,11 @@ import (
 
 	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
+
+const usageText = `
+Usage of %s:
+   %s [+ng] key=<n> <masterFile> <transactionFile>
+`
 
 var (
 	ngBool  bool
@@ -34,10 +40,7 @@ func main() {
 func (c *cli) run(args []string) int {
 	flags := flag.NewFlagSet("getlast", flag.ContinueOnError)
 	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
-Usage of %s:
-   %s [+ng] key=<n> <masterFile> <transactionFile>
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
@@ -47,7 +50,7 @@ Usage of %s:
 	param := flags.Args()
 	// debug: fmt.Println(param)
 
-	fromNum, toNum, master, tran := validateParam(param)
+	fromNum, toNum, master, tran := validateParam(param, c.inStream)
 	// fmt.Println(fromNum)
 	// fmt.Println(toNum)
 
@@ -62,7 +65,7 @@ Usage of %s:
 	return util.ExitCodeOK
 }
 
-func validateParam(param []string) (fromNum int, toNum int, masterRecord [][]string, tranRecord [][]string) {
+func validateParam(param []string, inStream io.Reader) (fromNum int, toNum int, masterRecord [][]string, tranRecord [][]string) {
 	var (
 		ng     string
 		orgKey string
@@ -109,16 +112,33 @@ func validateParam(param []string) (fromNum int, toNum int, masterRecord [][]str
 		toNum = fromNum + 1
 	}
 
-	masterFile, err := os.Open(master)
-	if err != nil {
-		util.Fatal(err, util.ExitCodeFileOpenErr)
+	if master == "-" && tran == "-" {
+		util.Fatal(errors.New("masterFile and tranFile should not be stdin at the same time"), util.ExitCodeParseFlagErr)
 	}
-	defer masterFile.Close()
-	tranFile, err := os.Open(tran)
-	if err != nil {
-		util.Fatal(err, util.ExitCodeFileOpenErr)
+
+	var masterFile io.Reader
+	if master == "-" {
+		masterFile = bufio.NewReader(inStream)
+	} else {
+		mf, err := os.Open(master)
+		if err != nil {
+			util.Fatal(err, util.ExitCodeFileOpenErr)
+		}
+		defer mf.Close()
+		masterFile = bufio.NewReader(mf)
 	}
-	defer tranFile.Close()
+
+	var tranFile io.Reader
+	if tran == "-" {
+		tranFile = bufio.NewReader(inStream)
+	} else {
+		tf, err := os.Open(tran)
+		if err != nil {
+			util.Fatal(err, util.ExitCodeFileOpenErr)
+		}
+		defer tf.Close()
+		tranFile = bufio.NewReader(tf)
+	}
 	csvm := csv.NewReader(masterFile)
 	csvt := csv.NewReader(tranFile)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
