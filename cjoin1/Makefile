@@ -22,7 +22,6 @@ test:
 		$(GOLINT) $(go list ./... | grep -v /vendor/)
 		$(GOVET) $(go list ./... | grep -v /vendor/)
 		$(GOTEST) -v ./...
-		./$(BINARY_NAME)_test.bash
 clean:
 		$(GOCLEAN)
 		rm -rf bin/

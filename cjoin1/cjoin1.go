@@ -1,17 +1,25 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
+
+const usageText = `
+Usage of %s:
+   %s [+ng] key=<n> <masterFile> <transactionFile>
+`
 
 var (
 	ngBool  bool
@@ -19,39 +27,45 @@ var (
 	toNum   int
 )
 
+type cli struct {
+	outStream, errStream io.Writer
+	inStream             io.Reader
+}
+
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
-Usage of %s:
-   %s [+ng] key=<n> <masterFile> <transactionFile>
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr, inStream: os.Stdin}
+	os.Exit(cli.run(os.Args))
+}
+
+func (c *cli) run(args []string) int {
+	flags := flag.NewFlagSet("getlast", flag.ContinueOnError)
+	flags.Usage = func() {
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
-	flag.Parse()
-	param := flag.Args()
+	if err := flags.Parse(args[1:]); err != nil {
+		return util.ExitCodeParseFlagErr
+	}
+	param := flags.Args()
 	// debug: fmt.Println(param)
 
-	fromNum, toNum, master, tran := validateParam(param)
+	fromNum, toNum, master, tran := validateParam(param, c.inStream)
 	// fmt.Println(fromNum)
 	// fmt.Println(toNum)
 
 	fields, ngFields := cjoin1(fromNum, toNum, master, tran)
 	// debug: fmt.Println(fields)
 
-	writeFields(fields)
+	util.WriteCsv(c.outStream, fields)
 	if ngBool {
-		writeNgFields(ngFields)
+		util.WriteCsv(c.errStream, ngFields)
 	}
+
+	return util.ExitCodeOK
 }
 
-func fatal(err error) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(1)
-}
-
-func validateParam(param []string) (int, int, string, string) {
+func validateParam(param []string, inStream io.Reader) (fromNum int, toNum int, masterRecord [][]string, tranRecord [][]string) {
 	var (
 		ng     string
 		orgKey string
@@ -63,17 +77,17 @@ func validateParam(param []string) (int, int, string, string) {
 	if len(param) == 4 {
 		ng, orgKey, master, tran = param[0], param[1], param[2], param[3]
 		if ng != "+ng" {
-			fatal(errors.New("failed to read param: +ng"))
+			util.Fatal(errors.New("failed to read param: +ng"), util.ExitCodeFlagErr)
 		}
 		ngBool = true
 	} else if len(param) == 3 {
 		orgKey, master, tran = param[0], param[1], param[2]
 	} else {
-		fatal(errors.New("failed to read param"))
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	if !strings.HasPrefix(orgKey, "key=") {
-		fatal(errors.New("failed to read param: key="))
+		util.Fatal(errors.New("failed to read param: key="), util.ExitCodeFlagErr)
 	}
 
 	key := orgKey[4:]
@@ -82,35 +96,45 @@ func validateParam(param []string) (int, int, string, string) {
 		from, to := fromTo[0], fromTo[1]
 		fromNum, err = strconv.Atoi(from)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeParseFlagErr)
 		}
 		fromNum = fromNum - 1
 		toNum, err = strconv.Atoi(to)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeParseFlagErr)
 		}
 	} else {
 		fromNum, err = strconv.Atoi(key)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeParseFlagErr)
 		}
 		fromNum = fromNum - 1
 		toNum = fromNum + 1
 	}
-	return fromNum, toNum, master, tran
-}
 
-func cjoin1(fromNum int, toNum int, master string, tran string) ([][]string, [][]string) {
-	masterFile, err := os.Open(master)
-	if err != nil {
-		fatal(err)
+	var masterFile io.Reader
+	if master == "-" {
+		masterFile = bufio.NewReader(inStream)
+	} else {
+		mf, err := os.Open(master)
+		if err != nil {
+			util.Fatal(err, util.ExitCodeFileOpenErr)
+		}
+		defer mf.Close()
+		masterFile = bufio.NewReader(mf)
 	}
-	defer masterFile.Close()
-	tranFile, err := os.Open(tran)
-	if err != nil {
-		fatal(err)
+
+	var tranFile io.Reader
+	if tran == "-" {
+		tranFile = bufio.NewReader(inStream)
+	} else {
+		tf, err := os.Open(tran)
+		if err != nil {
+			util.Fatal(err, util.ExitCodeFileOpenErr)
+		}
+		defer tf.Close()
+		tranFile = bufio.NewReader(tf)
 	}
-	defer tranFile.Close()
 	csvm := csv.NewReader(masterFile)
 	csvt := csv.NewReader(tranFile)
 	delm, _ := utf8.DecodeLastRuneInString(" ")
@@ -119,16 +143,20 @@ func cjoin1(fromNum int, toNum int, master string, tran string) ([][]string, [][
 	csvm.TrimLeadingSpace = true
 	csvt.TrimLeadingSpace = true
 
-	masterRecord, err := csvm.ReadAll()
+	masterRecord, err = csvm.ReadAll()
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
-	masterKey := setMasterKey(masterRecord, toNum-fromNum)
 
-	tranRecord, err := csvt.ReadAll()
+	tranRecord, err = csvt.ReadAll()
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
+	return fromNum, toNum, masterRecord, tranRecord
+}
+
+func cjoin1(fromNum int, toNum int, masterRecord [][]string, tranRecord [][]string) ([][]string, [][]string) {
+	masterKey := setMasterKey(masterRecord, toNum-fromNum)
 
 	var result [][]string
 	var ngResult [][]string
@@ -164,26 +192,4 @@ func setMasterKey(masterRecord [][]string, keyNum int) map[string][]string {
 		masterKey[token] = line[keyNum:]
 	}
 	return masterKey
-}
-
-func writeFields(fields [][]string) {
-	csvw := csv.NewWriter(os.Stdout)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvw.Comma = delm
-
-	for _, line := range fields {
-		csvw.Write(line)
-	}
-	csvw.Flush()
-}
-
-func writeNgFields(fields [][]string) {
-	csvw := csv.NewWriter(os.Stderr)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvw.Comma = delm
-
-	for _, line := range fields {
-		csvw.Write(line)
-	}
-	csvw.Flush()
 }
