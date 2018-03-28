@@ -57,9 +57,9 @@ func (c *cli) run(args []string) int {
 	fields, ngFields := cjoin1(fromNum, toNum, master, tran)
 	// debug: fmt.Println(fields)
 
-	util.WriteCsv(c.outStream, fields)
+	writeFields(fields, c.outStream)
 	if ngBool {
-		util.WriteCsv(c.errStream, ngFields)
+		writeNgFields(ngFields, c.errStream)
 	}
 
 	return util.ExitCodeOK
@@ -155,11 +155,9 @@ func validateParam(param []string, inStream io.Reader) (fromNum int, toNum int, 
 	return fromNum, toNum, masterRecord, tranRecord
 }
 
-func cjoin1(fromNum int, toNum int, masterRecord [][]string, tranRecord [][]string) ([][]string, [][]string) {
+func cjoin1(fromNum int, toNum int, masterRecord [][]string, tranRecord [][]string) (result [][]string, ngResult [][]string) {
 	masterKey := setMasterKey(masterRecord, toNum-fromNum)
 
-	var result [][]string
-	var ngResult [][]string
 	for _, line := range tranRecord {
 		tranKey := strings.Join(line[fromNum:toNum], " ")
 		if val, ok := masterKey[tranKey]; ok {
@@ -192,4 +190,26 @@ func setMasterKey(masterRecord [][]string, keyNum int) map[string][]string {
 		masterKey[token] = line[keyNum:]
 	}
 	return masterKey
+}
+
+func writeFields(fields [][]string, outStream io.Writer) {
+	csvw := csv.NewWriter(outStream)
+	delm, _ := utf8.DecodeLastRuneInString(" ")
+	csvw.Comma = delm
+
+	for _, line := range fields {
+		csvw.Write(line)
+	}
+	csvw.Flush()
+}
+
+func writeNgFields(fields [][]string, errStream io.Writer) {
+	csvw := csv.NewWriter(errStream)
+	delm, _ := utf8.DecodeLastRuneInString(" ")
+	csvw.Comma = delm
+
+	for _, line := range fields {
+		csvw.Write(line)
+	}
+	csvw.Flush()
 }

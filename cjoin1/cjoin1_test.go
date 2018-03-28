@@ -48,7 +48,11 @@ func TestCjoin1FileInput(t *testing.T) {
 	}{
 		{
 			input: "key=1 testdata/TEST1-master.txt testdata/TEST1-tran.txt",
-			want:  "0000001 B 鈴田______ 50 F 46 39 8 5 21\n0000004 A 白土______ 40 M 58 71 20 10 6\n",
+			want:  "0000004 A 白土______ 40 M 58 71 20 10 6\n0000001 B 鈴田______ 50 F 46 39 8 5 21\n",
+		},
+		{
+			input: "key=2/3 testdata/TEST3-master.txt testdata/TEST3-tran.txt",
+			want:  "CCC 003 太田 石川\nBBB 002 上田 富山\n",
 		},
 	}
 	for _, c := range cases {
