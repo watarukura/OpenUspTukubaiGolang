@@ -57,9 +57,9 @@ func (c *cli) run(args []string) int {
 	fields, ngFields := cjoin1(fromNum, toNum, master, tran)
 	// debug: fmt.Println(fields)
 
-	writeFields(fields, c.outStream)
+	util.WriteCsv(c.outStream, fields)
 	if ngBool {
-		writeNgFields(ngFields, c.errStream)
+		util.WriteCsv(c.errStream, ngFields)
 	}
 
 	return util.ExitCodeOK
@@ -190,26 +190,4 @@ func setMasterKey(masterRecord [][]string, keyNum int) map[string][]string {
 		masterKey[token] = line[keyNum:]
 	}
 	return masterKey
-}
-
-func writeFields(fields [][]string, outStream io.Writer) {
-	csvw := csv.NewWriter(outStream)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvw.Comma = delm
-
-	for _, line := range fields {
-		csvw.Write(line)
-	}
-	csvw.Flush()
-}
-
-func writeNgFields(fields [][]string, errStream io.Writer) {
-	csvw := csv.NewWriter(errStream)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvw.Comma = delm
-
-	for _, line := range fields {
-		csvw.Write(line)
-	}
-	csvw.Flush()
 }
