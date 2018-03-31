@@ -169,7 +169,9 @@ func sm2(startKeyFldNum int, endKeyFldNum int, startSumFldNum int, endSumFldNum 
 	var record []string
 	var sumStr []string
 	for k, ss := range keySum {
-		record = strings.Split(k, " ")
+		if len(k) > 0 {
+			record = strings.Split(k, " ")
+		}
 		for i, s := range ss {
 			sumStr = append(sumStr, strconv.FormatFloat(s, 'f', maxPrec[i], 64))
 		}
