@@ -55,6 +55,9 @@ cat ${tmp}-in | ${com} 2 4 > $tmp-ans
 diff $tmp-ans $tmp-out
 [ $? -eq 0 ] ; ERROR_CHECK "TEST1 error"
 
+${com} 2 4 ${tmp}-in > $tmp-ans
+diff $tmp-ans $tmp-out
+[ $? -eq 0 ] ; ERROR_CHECK "TEST1.1 error"
 ###########################################
 #TEST2
 
