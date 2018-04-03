@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -70,7 +69,7 @@ func TestGetLastStdInput(t *testing.T) {
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
 		args := append([]string{"getfirst"}, strings.Split(c.input, " ")...)
-		fmt.Println(args)
+		// fmt.Println(args)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)

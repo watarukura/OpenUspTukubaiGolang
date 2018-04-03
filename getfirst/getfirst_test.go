@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 func TestGetFirstFileInput(t *testing.T) {
@@ -30,8 +32,8 @@ func TestGetFirstFileInput(t *testing.T) {
 
 		args := append([]string{"getfirst"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
-		if status != exitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
+		if status != util.ExitCodeOK {
+			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
@@ -69,8 +71,8 @@ func TestGetFirstStdInput(t *testing.T) {
 		args := append([]string{"getfirst"}, strings.Split(c.input, " ")...)
 		// fmt.Println(args)
 		status := cli.run(args)
-		if status != exitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, exitCodeOK)
+		if status != util.ExitCodeOK {
+			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
