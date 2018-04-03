@@ -5,48 +5,61 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
-func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
+const usageText = `
 Usage of %s:
    %s outputFileNameTemplate inputFileName
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+`
+
+type cli struct {
+	outStream, errStream io.Writer
+	inStream             io.Reader
+}
+
+func main() {
+	cli := &cli{outStream: os.Stdout, errStream: os.Stderr, inStream: os.Stdin}
+	os.Exit(cli.run(os.Args))
+}
+
+func (c *cli) run(args []string) int {
+	flags := flag.NewFlagSet("self", flag.ContinueOnError)
+	flags.Usage = func() {
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
-	flag.Parse()
-	param := flag.Args()
+	if err := flags.Parse(args[1:]); err != nil {
+		return util.ExitCodeParseFlagErr
+	}
+	param := flags.Args()
 	// debug: fmt.Println(param)
 
 	inputRecord, outputFileNameTemplate, sepKey := validateParam(param)
 	// validateParam(param)
 
 	keycut(inputRecord, outputFileNameTemplate, sepKey)
-}
 
-func fatal(err error) {
-	_, fn, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s %s:%d %s ", os.Args[0], fn, line, err)
-	os.Exit(1)
+	return util.ExitCodeOK
 }
 
 func validateParam(param []string) (inputRecord [][]string, outputFile []string, sepKey []string) {
 	if len(param) != 2 {
-		fatal(errors.New("failed to read param"))
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	inputFileName, err := os.Open(param[1])
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
 	defer inputFileName.Close()
 
@@ -57,7 +70,7 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 
 	inputRecord, err = csv.ReadAll()
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeCsvFormatErr)
 	}
 
 	outputFileName := param[0]
@@ -95,7 +108,7 @@ func validateParam(param []string) (inputRecord [][]string, outputFile []string,
 	}
 
 	if len(sepKey) == 0 {
-		fatal(errors.New("failed to read param: no key in output file name"))
+		util.Fatal(errors.New("failed to read param: no key in output file name"), util.ExitCodeFlagErr)
 	}
 	// fmt.Println(outputFile)
 	// fmt.Println(sepKey)
@@ -160,12 +173,12 @@ func writeFile(outputFileName string, records [][]string) {
 	if dirName != "" {
 		err := os.MkdirAll(dirName, 0777)
 		if err != nil {
-			fatal(err)
+			util.Fatal(err, util.ExitCodeNG)
 		}
 	}
 	file, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-		fatal(err)
+		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
 	defer file.Close()
 
