@@ -25,6 +25,7 @@ func TestCjoin1StdInput(t *testing.T) {
 	for _, c := range cases {
 		outStream.Reset()
 		errStream.Reset()
+		inStream.Reset()
 		inStream = bytes.NewBufferString(c.inputStdin)
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
