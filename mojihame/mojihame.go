@@ -24,9 +24,9 @@ Usage of %s:
 `
 
 var (
-	labelStr string
-	label    = false
-	hier     = false
+	label    string
+	isRepeat = false
+	isHier   = false
 )
 
 type cli struct {
@@ -71,7 +71,7 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 	case 3:
 		optionLabel, template, data = param[0], param[1], param[2]
 	case 4:
-		option, labelStr, template, data = param[0], param[1], param[2], param[3]
+		option, label, template, data = param[0], param[1], param[2], param[3]
 	default:
 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
@@ -80,7 +80,7 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 		if !strings.HasPrefix(optionLabel, "-h") && !strings.HasPrefix(optionLabel, "-l") {
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 		}
-		option, labelStr = optionLabel[0:2], optionLabel[2:]
+		option, label = optionLabel[0:2], optionLabel[2:]
 	}
 
 	if option != "" {
@@ -88,10 +88,11 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 		}
 		if option == "-h" {
-			hier = true
+			isHier = true
+			isRepeat = true
 		}
 		if option == "-l" {
-			label = true
+			isRepeat = true
 		}
 	}
 
@@ -149,14 +150,23 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 			fmt.Fprint(outStream, tr)
 			continue
 		}
-		rep := regexp.MustCompile(`(\d*)([ \n])(.*)`)
+		rep := regexp.MustCompile(`(\d*)([ \n].*)`)
 		keySepStr := rep.FindStringSubmatch(tr)
-		if keySepStr[1] != "" {
+		key, str := keySepStr[1], keySepStr[2]
+		if key != "" {
 			key, _ := strconv.Atoi(keySepStr[1])
 			key--
-			if key < keyCount {
-				fmt.Fprint(outStream, dataRecord[key]+keySepStr[2]+keySepStr[3])
+			if key <= keyCount {
+				fmt.Fprint(outStream, dataRecord[key]+str)
 				break
+			}
+
+			if isRepeat {
+				key = key - keyCount
+				for key < keyCount {
+					fmt.Fprint(outStream, dataRecord[key]+str)
+					key = key - keyCount
+				}
 			}
 		} else {
 			fmt.Fprint(outStream, tr)

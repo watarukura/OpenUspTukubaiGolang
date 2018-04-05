@@ -30,7 +30,7 @@ func TestCountFileInput(t *testing.T) {
 		outStream.Reset()
 		errStream.Reset()
 
-		args := append([]string{"count"}, strings.Split(c.input, " ")...)
+		args := append([]string{"mojihame"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
@@ -42,7 +42,7 @@ func TestCountFileInput(t *testing.T) {
 	}
 }
 
-func TestCountStdInput(t *testing.T) {
+func TestMojihameStdInput(t *testing.T) {
 	outStream, errStream, inStream := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 
 	cases := []struct {
@@ -68,7 +68,7 @@ func TestCountStdInput(t *testing.T) {
 		inStream = bytes.NewBufferString(c.inputStdin)
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
-		args := append([]string{"count"}, strings.Split(c.input, " ")...)
+		args := append([]string{"mojihame"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
