@@ -20,6 +20,10 @@ func TestCountFileInput(t *testing.T) {
 			input: "testdata/TEST1-template.txt testdata/TEST1-data.txt",
 			want:  "1st=a\n2nd=b\n3rd=c 4th=d\n",
 		},
+		{
+			input: "testdata/TEST3-template.txt testdata/TEST3-data.txt",
+			want:  "1st=a 2nd=b\n3rd=c 4th=d\n1st=w 2nd=x\n3rd=y 4th=z\n",
+		},
 	}
 
 	for _, c := range cases {

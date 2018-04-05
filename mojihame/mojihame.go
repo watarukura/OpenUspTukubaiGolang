@@ -143,6 +143,7 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 
 func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 	templateRecord := strings.Split(templateString, "%")
+	keyCount := len(templateRecord)
 	for i, tr := range templateRecord {
 		if i == 0 {
 			fmt.Fprint(outStream, tr)
@@ -153,7 +154,10 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 		if keySepStr[1] != "" {
 			key, _ := strconv.Atoi(keySepStr[1])
 			key--
-			fmt.Fprint(outStream, dataRecord[key]+keySepStr[2]+keySepStr[3])
+			if key < keyCount {
+				fmt.Fprint(outStream, dataRecord[key]+keySepStr[2]+keySepStr[3])
+				break
+			}
 		} else {
 			fmt.Fprint(outStream, tr)
 		}
