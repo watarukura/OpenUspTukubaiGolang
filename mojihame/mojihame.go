@@ -149,11 +149,11 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 			continue
 		}
 		rep := regexp.MustCompile(`(\d*)([ \n])(.*)`)
-		keySepStr := rep.FindAllStringSubmatch(tr, -1)
-		if keySepStr[0][1] != "" {
-			key, _ := strconv.Atoi(keySepStr[0][1])
+		keySepStr := rep.FindStringSubmatch(tr)
+		if keySepStr[1] != "" {
+			key, _ := strconv.Atoi(keySepStr[1])
 			key--
-			fmt.Fprint(outStream, dataRecord[key]+keySepStr[0][2]+keySepStr[0][3])
+			fmt.Fprint(outStream, dataRecord[key]+keySepStr[2]+keySepStr[3])
 		} else {
 			fmt.Fprint(outStream, tr)
 		}
