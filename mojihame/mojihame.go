@@ -46,6 +46,9 @@ func (c *cli) run(args []string) int {
 		flag.PrintDefaults()
 	}
 
+	flags.BoolVar(&isRepeat, "l", false, "use label option")
+	flags.BoolVar(&isHier, "h", false, "use hierarchy option")
+
 	if err := flags.Parse(args[1:]); err != nil {
 		return util.ExitCodeParseFlagErr
 	}
@@ -55,7 +58,14 @@ func (c *cli) run(args []string) int {
 	templateString, dataRecord := validateParam(param, c.inStream)
 	// validateParam(param)
 
-	mojihame(templateString, dataRecord, c.outStream)
+	switch {
+	// case isHier:
+	// 	mojihameHier(templateString, dataRecord, c.outStream)
+	case label != "":
+		mojihameLabel(templateString, dataRecord, c.outStream)
+	default:
+		mojihame(templateString, dataRecord, c.outStream)
+	}
 
 	return util.ExitCodeOK
 }
@@ -70,17 +80,19 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 		template, data = param[0], param[1]
 	case 3:
 		optionLabel, template, data = param[0], param[1], param[2]
-	case 4:
-		option, label, template, data = param[0], param[1], param[2], param[3]
+	// case 4:
+	// 	option, label, template, data = param[0], param[1], param[2], param[3]
 	default:
+		fmt.Println(param)
 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	if optionLabel != "" {
 		if !strings.HasPrefix(optionLabel, "-h") && !strings.HasPrefix(optionLabel, "-l") {
-			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+			label = optionLabel
+		} else {
+			option, label = optionLabel[0:2], optionLabel[2:]
 		}
-		option, label = optionLabel[0:2], optionLabel[2:]
 	}
 
 	if option != "" {
@@ -171,5 +183,47 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 				fmt.Fprint(outStream, tr)
 			}
 		}
+		if !isRepeat {
+			break
+		}
 	}
+}
+
+func mojihameLabel(templateString string, dataRecord []string, outStream io.Writer) {
+	templateRecords := strings.Split(templateString, label)
+	prev, labeled, end := templateRecords[0], templateRecords[1], templateRecords[2]
+	templateRecord := strings.Split(labeled, "%")
+	keyCount := len(templateRecord) - 1
+	var dataRecords [][]string
+	for len(dataRecord) >= keyCount {
+		dataRecords = append(dataRecords, dataRecord[0:keyCount])
+		dataRecord = dataRecord[keyCount:]
+	}
+	// fmt.Println(keyCount)
+	// fmt.Println(dataRecord)
+	// fmt.Println(dataRecords)
+
+	fmt.Fprint(outStream, prev)
+	for _, dr := range dataRecords {
+		for i, tr := range templateRecord {
+			if i == 0 {
+				fmt.Fprint(outStream, tr)
+				continue
+			}
+			rep := regexp.MustCompile(`(\d*)([ \n].*)`)
+			keySepStr := rep.FindStringSubmatch(tr)
+			key, str := keySepStr[1], keySepStr[2]
+			if key != "" {
+				key, _ := strconv.Atoi(keySepStr[1])
+				key--
+				fmt.Fprint(outStream, dr[key]+str)
+			} else {
+				fmt.Fprint(outStream, tr)
+			}
+		}
+		if !isRepeat {
+			break
+		}
+	}
+	fmt.Fprint(outStream, end)
 }

@@ -21,8 +21,12 @@ func TestCountFileInput(t *testing.T) {
 			want:  "1st=a\n2nd=b\n3rd=c 4th=d\n",
 		},
 		{
-			input: "testdata/TEST3-template.txt testdata/TEST3-data.txt",
+			input: "-l testdata/TEST3-template.txt testdata/TEST3-data.txt",
 			want:  "1st=a 2nd=b\n3rd=c 4th=d\n1st=w 2nd=x\n3rd=y 4th=z\n",
+		},
+		{
+			input: "-lLABEL testdata/TEST4-template.txt testdata/TEST4-data.txt",
+			want:  "header %1\n1st=a 2nd=b\n1st=y 2nd=z\nfooter %2\n",
 		},
 	}
 
