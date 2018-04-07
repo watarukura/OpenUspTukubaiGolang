@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/csv"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -40,22 +39,23 @@ func main() {
 }
 
 func (c *cli) run(args []string) int {
-	flags := flag.NewFlagSet("mojihame", flag.ContinueOnError)
-	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-		flag.PrintDefaults()
-	}
+	param := os.Args[1:]
+	// flags := flag.NewFlagSet("mojihame", flag.ContinueOnError)
+	// flags.Usage = func() {
+	// 	fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+	// 	flag.PrintDefaults()
+	// }
 
-	flags.BoolVar(&isRepeat, "l", false, "use label option")
-	flags.BoolVar(&isHier, "h", false, "use hierarchy option")
+	// flags.BoolVar(&isRepeat, "l", false, "use label option")
+	// flags.BoolVar(&isHier, "h", false, "use hierarchy option")
 
-	if err := flags.Parse(args[1:]); err != nil {
-		return util.ExitCodeParseFlagErr
-	}
-	param := flags.Args()
+	// if err := flags.Parse(args[1:]); err != nil {
+	// 	return util.ExitCodeParseFlagErr
+	// }
+	// param := flags.Args()
 	// debug: fmt.Println(param)
 
-	templateString, dataRecord := validateParam(param, c.inStream)
+	templateString, dataRecord := validateParam(param, c.inStream, c.errStream)
 	// validateParam(param)
 
 	switch {
@@ -70,7 +70,7 @@ func (c *cli) run(args []string) int {
 	return util.ExitCodeOK
 }
 
-func validateParam(param []string, inStream io.Reader) (templateString string, dataRecord []string) {
+func validateParam(param []string, inStream io.Reader, errStream io.Writer) (templateString string, dataRecord []string) {
 	optionLabel := ""
 	var option string
 	var template string
@@ -80,11 +80,11 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 		template, data = param[0], param[1]
 	case 3:
 		optionLabel, template, data = param[0], param[1], param[2]
-	// case 4:
-	// 	option, label, template, data = param[0], param[1], param[2], param[3]
+	case 4:
+		option, label, template, data = param[0], param[1], param[2], param[3]
 	default:
-		fmt.Println(param)
-		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+		fmt.Fprintf(errStream, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		// util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	if optionLabel != "" {
@@ -202,6 +202,10 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 	// fmt.Println(keyCount)
 	// fmt.Println(dataRecord)
 	// fmt.Println(dataRecords)
+	fmt.Println(templateString)
+	fmt.Println(prev)
+	fmt.Println(labeled)
+	fmt.Println(end)
 
 	fmt.Fprint(outStream, prev)
 	for _, dr := range dataRecords {
@@ -220,9 +224,6 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 			} else {
 				fmt.Fprint(outStream, tr)
 			}
-		}
-		if !isRepeat {
-			break
 		}
 	}
 	fmt.Fprint(outStream, end)
