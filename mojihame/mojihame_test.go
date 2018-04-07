@@ -8,7 +8,7 @@ import (
 	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
-func TestCountFileInput(t *testing.T) {
+func TestMojihameFileInput(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &cli{outStream: outStream, errStream: errStream}
 
@@ -69,6 +69,7 @@ func TestMojihameStdInput(t *testing.T) {
 	for _, c := range cases {
 		outStream.Reset()
 		errStream.Reset()
+		inStream.Reset()
 		inStream = bytes.NewBufferString(c.inputStdin)
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 

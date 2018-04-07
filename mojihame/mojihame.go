@@ -22,11 +22,10 @@ Usage of %s:
    %s [-l label_name | -h label_name]  <template> <data>
 `
 
-var (
-	label    string
-	isRepeat = false
-	isHier   = false
-)
+type labelOption struct {
+	label            string
+	isRepeat, isHier bool
+}
 
 type cli struct {
 	outStream, errStream io.Writer
@@ -39,40 +38,27 @@ func main() {
 }
 
 func (c *cli) run(args []string) int {
-	param := os.Args[1:]
-	// flags := flag.NewFlagSet("mojihame", flag.ContinueOnError)
-	// flags.Usage = func() {
-	// 	fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-	// 	flag.PrintDefaults()
-	// }
+	param := args[1:]
+	labelOption := &labelOption{label: "", isRepeat: false, isHier: false}
 
-	// flags.BoolVar(&isRepeat, "l", false, "use label option")
-	// flags.BoolVar(&isHier, "h", false, "use hierarchy option")
-
-	// if err := flags.Parse(args[1:]); err != nil {
-	// 	return util.ExitCodeParseFlagErr
-	// }
-	// param := flags.Args()
-	// debug: fmt.Println(param)
-
-	templateString, dataRecord := validateParam(param, c.inStream, c.errStream)
-	// validateParam(param)
+	templateString, dataRecord := validateParam(param, c.inStream, c.errStream, labelOption)
+	// fmt.Println("label: " + label)
 
 	switch {
 	// case isHier:
 	// 	mojihameHier(templateString, dataRecord, c.outStream)
-	case label != "":
-		mojihameLabel(templateString, dataRecord, c.outStream)
+	case labelOption.label != "":
+		mojihameLabel(templateString, dataRecord, c.outStream, labelOption)
 	default:
-		mojihame(templateString, dataRecord, c.outStream)
+		mojihame(templateString, dataRecord, c.outStream, labelOption)
 	}
 
 	return util.ExitCodeOK
 }
 
-func validateParam(param []string, inStream io.Reader, errStream io.Writer) (templateString string, dataRecord []string) {
+func validateParam(param []string, inStream io.Reader, errStream io.Writer, labelOption *labelOption) (templateString string, dataRecord []string) {
 	optionLabel := ""
-	var option string
+	option := ""
 	var template string
 	var data string
 	switch len(param) {
@@ -81,7 +67,7 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer) (tem
 	case 3:
 		optionLabel, template, data = param[0], param[1], param[2]
 	case 4:
-		option, label, template, data = param[0], param[1], param[2], param[3]
+		option, labelOption.label, template, data = param[0], param[1], param[2], param[3]
 	default:
 		fmt.Fprintf(errStream, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		// util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
@@ -89,9 +75,9 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer) (tem
 
 	if optionLabel != "" {
 		if !strings.HasPrefix(optionLabel, "-h") && !strings.HasPrefix(optionLabel, "-l") {
-			label = optionLabel
+			labelOption.label = optionLabel
 		} else {
-			option, label = optionLabel[0:2], optionLabel[2:]
+			option, labelOption.label = optionLabel[0:2], optionLabel[2:]
 		}
 	}
 
@@ -100,11 +86,11 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer) (tem
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 		}
 		if option == "-h" {
-			isHier = true
-			isRepeat = true
+			labelOption.isHier = true
+			labelOption.isRepeat = true
 		}
 		if option == "-l" {
-			isRepeat = true
+			labelOption.isRepeat = true
 		}
 	}
 
@@ -122,6 +108,7 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer) (tem
 	} else {
 		templateFile, err = ioutil.ReadFile(template)
 		if err != nil {
+			fmt.Println(template)
 			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
 	}
@@ -154,7 +141,7 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer) (tem
 	return templateString, dataRecord
 }
 
-func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
+func mojihame(templateString string, dataRecord []string, outStream io.Writer, labelOption *labelOption) {
 	templateRecord := strings.Split(templateString, "%")
 	keyCount := len(templateRecord) - 1
 	var dataRecords [][]string
@@ -183,14 +170,16 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 				fmt.Fprint(outStream, tr)
 			}
 		}
-		if !isRepeat {
+		if !labelOption.isRepeat {
 			break
 		}
 	}
 }
 
-func mojihameLabel(templateString string, dataRecord []string, outStream io.Writer) {
-	templateRecords := strings.Split(templateString, label)
+func mojihameLabel(templateString string, dataRecord []string, outStream io.Writer, labelOption *labelOption) {
+	// fmt.Println(templateString)
+	// templateString = strings.Replace(templateString, "\n", "\\n", -1)
+	templateRecords := strings.Split(templateString, labelOption.label+"\n")
 	prev, labeled, end := templateRecords[0], templateRecords[1], templateRecords[2]
 	templateRecord := strings.Split(labeled, "%")
 	keyCount := len(templateRecord) - 1
@@ -202,10 +191,10 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 	// fmt.Println(keyCount)
 	// fmt.Println(dataRecord)
 	// fmt.Println(dataRecords)
-	fmt.Println(templateString)
-	fmt.Println(prev)
-	fmt.Println(labeled)
-	fmt.Println(end)
+	// fmt.Println(templateString)
+	// fmt.Println(prev)
+	// fmt.Println(labeled)
+	// fmt.Println(end)
 
 	fmt.Fprint(outStream, prev)
 	for _, dr := range dataRecords {
