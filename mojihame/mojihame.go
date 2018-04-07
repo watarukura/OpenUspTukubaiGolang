@@ -144,33 +144,32 @@ func validateParam(param []string, inStream io.Reader) (templateString string, d
 
 func mojihame(templateString string, dataRecord []string, outStream io.Writer) {
 	templateRecord := strings.Split(templateString, "%")
-	keyCount := len(templateRecord)
-	for i, tr := range templateRecord {
-		if i == 0 {
-			fmt.Fprint(outStream, tr)
-			continue
-		}
-		rep := regexp.MustCompile(`(\d*)([ \n].*)`)
-		keySepStr := rep.FindStringSubmatch(tr)
-		key, str := keySepStr[1], keySepStr[2]
-		if key != "" {
-			key, _ := strconv.Atoi(keySepStr[1])
-			key--
-			if key <= keyCount {
-				fmt.Fprint(outStream, dataRecord[key]+str)
-				break
-			}
+	keyCount := len(templateRecord) - 1
+	var dataRecords [][]string
+	for len(dataRecord) >= keyCount {
+		dataRecords = append(dataRecords, dataRecord[0:keyCount])
+		dataRecord = dataRecord[keyCount:]
+	}
+	// fmt.Println(keyCount)
+	// fmt.Println(dataRecord)
+	// fmt.Println(dataRecords)
 
-			if isRepeat {
-				key = key - keyCount
-				for key < keyCount {
-					fmt.Fprint(outStream, dataRecord[key]+str)
-					key = key - keyCount
-				}
+	for _, dr := range dataRecords {
+		for i, tr := range templateRecord {
+			if i == 0 {
+				fmt.Fprint(outStream, tr)
+				continue
 			}
-		} else {
-			fmt.Fprint(outStream, tr)
+			rep := regexp.MustCompile(`(\d*)([ \n].*)`)
+			keySepStr := rep.FindStringSubmatch(tr)
+			key, str := keySepStr[1], keySepStr[2]
+			if key != "" {
+				key, _ := strconv.Atoi(keySepStr[1])
+				key--
+				fmt.Fprint(outStream, dr[key]+str)
+			} else {
+				fmt.Fprint(outStream, tr)
+			}
 		}
 	}
-
 }
