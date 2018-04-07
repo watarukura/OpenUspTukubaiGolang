@@ -18,6 +18,6 @@ make install
 
 ```
 git clone https://github.com/watarukura/OpenUspTukubaiGolang.git
-cd cjoin0
+cd OpenUspTukubaiGolang/cjoin0
 make install
 ```
