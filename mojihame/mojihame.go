@@ -45,8 +45,8 @@ func (c *cli) run(args []string) int {
 	// fmt.Println("label: " + label)
 
 	switch {
-	// case isHier:
-	// 	mojihameHier(templateString, dataRecord, c.outStream)
+	// case labelOption.isHier:
+	// 	mojihameHier(templateString, dataRecord, c.outStream, labelOption)
 	case labelOption.label != "":
 		mojihameLabel(templateString, dataRecord, c.outStream, labelOption)
 	default:
@@ -149,9 +149,6 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer, l
 		dataRecords = append(dataRecords, dataRecord[0:keyCount])
 		dataRecord = dataRecord[keyCount:]
 	}
-	// fmt.Println(keyCount)
-	// fmt.Println(dataRecord)
-	// fmt.Println(dataRecords)
 
 	for _, dr := range dataRecords {
 		for i, tr := range templateRecord {
@@ -177,10 +174,12 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer, l
 }
 
 func mojihameLabel(templateString string, dataRecord []string, outStream io.Writer, labelOption *labelOption) {
-	// fmt.Println(templateString)
-	// templateString = strings.Replace(templateString, "\n", "\\n", -1)
-	templateRecords := strings.Split(templateString, labelOption.label+"\n")
+	templateRecords := strings.Split(templateString, labelOption.label)
 	prev, labeled, end := templateRecords[0], templateRecords[1], templateRecords[2]
+	// ラベル前後を削除することで、ラベルのある行を出力しないようにする
+	prev = prev[:strings.LastIndex(prev, "\n")+1]
+	labeled = labeled[strings.Index(labeled, "\n")+1 : strings.LastIndex(labeled, "\n")+1]
+	end = end[strings.Index(end, "\n")+1:]
 	templateRecord := strings.Split(labeled, "%")
 	keyCount := len(templateRecord) - 1
 	var dataRecords [][]string
@@ -188,13 +187,6 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 		dataRecords = append(dataRecords, dataRecord[0:keyCount])
 		dataRecord = dataRecord[keyCount:]
 	}
-	// fmt.Println(keyCount)
-	// fmt.Println(dataRecord)
-	// fmt.Println(dataRecords)
-	// fmt.Println(templateString)
-	// fmt.Println(prev)
-	// fmt.Println(labeled)
-	// fmt.Println(end)
 
 	fmt.Fprint(outStream, prev)
 	for _, dr := range dataRecords {
@@ -217,3 +209,36 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 	}
 	fmt.Fprint(outStream, end)
 }
+
+// func mojihameHier(templateString string, dataRecord []string, outStream io.Writer, labelOption *labelOption) {
+// 	templateRecords := strings.Split(templateString, labelOption.label+"\n")
+// 	prev, labeled, end := templateRecords[0], templateRecords[1], templateRecords[2]
+// 	templateRecord := strings.Split(labeled, "%")
+// 	keyCount := len(templateRecord) - 1
+// 	var dataRecords [][]string
+// 	for len(dataRecord) >= keyCount {
+// 		dataRecords = append(dataRecords, dataRecord[0:keyCount])
+// 		dataRecord = dataRecord[keyCount:]
+// 	}
+
+// 	fmt.Fprint(outStream, prev)
+// 	for _, dr := range dataRecords {
+// 		for i, tr := range templateRecord {
+// 			if i == 0 {
+// 				fmt.Fprint(outStream, tr)
+// 				continue
+// 			}
+// 			rep := regexp.MustCompile(`(\d*)([ \n].*)`)
+// 			keySepStr := rep.FindStringSubmatch(tr)
+// 			key, str := keySepStr[1], keySepStr[2]
+// 			if key != "" {
+// 				key, _ := strconv.Atoi(keySepStr[1])
+// 				key--
+// 				fmt.Fprint(outStream, dr[key]+str)
+// 			} else {
+// 				fmt.Fprint(outStream, tr)
+// 			}
+// 		}
+// 	}
+// 	fmt.Fprint(outStream, end)
+// }
