@@ -109,7 +109,7 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer, labe
 		}
 	}
 
-	if template == "_" && data == "_" {
+	if template == "-" && data == "-" {
 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
