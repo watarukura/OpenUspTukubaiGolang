@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +16,6 @@ import (
 const usageText = `
 Usage of %s:
    %s [-n null_character] [-s brank_character] <org> <dst> [<file>]
-   %s [-n null_character] [-s brank_character] -f <script> [<file>]
 `
 
 type option struct {
@@ -39,12 +39,12 @@ func (c *cli) run(args []string) int {
 	param := args[1:]
 	option := &option{nullCharacter: "@", brankCharacter: " ", isScript: false}
 
-	org, dst, _, targetFile := validateParam(param, c.inStream, option)
+	org, dst, _, targetString := validateParam(param, c.inStream, option)
 	// fmt.Println("label: " + label)
 
 	switch {
 	case option.isScript:
-		calsed(org, dst, targetFile, c.outStream, option)
+		calsed(org, dst, targetString, c.outStream, option)
 		// default:
 		// 	calsedScript(scriptFile, targetFile)
 	}
@@ -52,7 +52,7 @@ func (c *cli) run(args []string) int {
 	return util.ExitCodeOK
 }
 
-func validateParam(param []string, inStream io.Reader, opt *option) (org string, dst string, scriptFile io.Reader, targetFile io.Reader) {
+func validateParam(param []string, inStream io.Reader, opt *option) (org string, dst string, scriptString string, targetString string) {
 	if len(param) < 2 || len(param) > 5 {
 		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 	}
@@ -109,6 +109,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 	}
 
+	var scriptFile io.Reader
 	if opt.isScript {
 		if script == "-" && file == "-" {
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
@@ -126,12 +127,16 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 			}
 			scriptFile = bufio.NewReader(sf)
 		}
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(scriptFile)
+		scriptString = buf.String()
 	} else {
 		if org == "" || dst == "" {
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 		}
 	}
 
+	var targetFile io.Reader
 	if file == "-" || file == "" {
 		targetFile = bufio.NewReader(inStream)
 	} else {
@@ -141,9 +146,16 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 		targetFile = bufio.NewReader(tf)
 	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(targetFile)
+	targetString = buf.String()
 
-	return org, dst, scriptFile, targetFile
+	return org, dst, scriptString, targetString
 }
 
-func calsed(org string, dst string, targetFile io.Reader, outStream io.Writer, opt *option) {
+func calsed(org string, dst string, targetString string, outStream io.Writer, opt *option) {
+	replaced := strings.Replace(targetString, org, dst, -1)
+	replacedNull := strings.Replace(replaced, opt.nullCharacter, "", -1)
+	replacedBrank := strings.Replace(replacedNull, opt.brankCharacter, " ", -1)
+	fmt.Fprint(outStream, replacedBrank)
 }
