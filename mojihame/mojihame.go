@@ -123,7 +123,6 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer, labe
 	} else {
 		templateFile, err = ioutil.ReadFile(template)
 		if err != nil {
-			fmt.Println(template)
 			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
 	}
