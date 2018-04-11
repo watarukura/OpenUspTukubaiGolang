@@ -21,6 +21,14 @@ func TestMojihameFileInput(t *testing.T) {
 			want:  "1st=a\n2nd=b\n3rd=c 4th=d\n",
 		},
 		{
+			input: "testdata/TEST2-template.txt testdata/TEST2-data.txt",
+			want:  "1st=a\n2nd=\n3rd= 4th=d\n",
+		},
+		{
+			input: "-da testdata/TEST2-template.txt testdata/TEST2-data.txt",
+			want:  "1st=\n2nd=@\n3rd=@ 4th=d\n",
+		},
+		{
 			input: "-l testdata/TEST3-template.txt testdata/TEST3-data.txt",
 			want:  "1st=a 2nd=b\n3rd=c 4th=d\n1st=w 2nd=x\n3rd=y 4th=z\n",
 		},
