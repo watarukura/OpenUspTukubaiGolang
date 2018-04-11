@@ -32,6 +32,10 @@ func TestMojihameFileInput(t *testing.T) {
 			input: "-lLABEL testdata/TEST4-2-template.txt testdata/TEST4-data.txt",
 			want:  "header %1\n1st=a 2nd=b\n1st=y 2nd=z\nfooter %2\n",
 		},
+		{
+			input: "-dxyz -lLABEL testdata/TEST6-template.txt testdata/TEST6-data.txt",
+			want:  "header %1\n1st= 2nd=b\n1st= 2nd=z\nfooter %2\n",
+		},
 		// {
 		// 	input: "-hLABEL testdata/TEST7-template.txt testdata/TEST7-data.txt",
 		// 	want:  "表題 %1\n氏名＝山田\n地名＝東京 時刻＝10:00\n地名＝大阪 時刻＝20:00\n地名＝横浜 時刻＝09:30\n氏名＝鈴木\n地名＝東京 時刻＝16:45\n地名＝神戸 時刻＝15:30\n",

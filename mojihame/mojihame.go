@@ -19,12 +19,13 @@ import (
 
 const usageText = `
 Usage of %s:
-   %s [-l label_name | -h label_name]  <template> <data>
+   %s [-d null_character] [-l label_name | -h label_name]  <template> <data>
 `
 
 type labelOption struct {
 	label            string
 	isRepeat, isHier bool
+	nullCharacter    string
 }
 
 type cli struct {
@@ -39,7 +40,7 @@ func main() {
 
 func (c *cli) run(args []string) int {
 	param := args[1:]
-	labelOption := &labelOption{label: "", isRepeat: false, isHier: false}
+	labelOption := &labelOption{label: "", isRepeat: false, isHier: false, nullCharacter: "@"}
 
 	templateString, dataRecord := validateParam(param, c.inStream, c.errStream, labelOption)
 	// fmt.Println("label: " + label)
@@ -61,29 +62,55 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer, labe
 	option := ""
 	var template string
 	var data string
-	switch len(param) {
-	case 2:
-		template, data = param[0], param[1]
-	case 3:
-		optionLabel, template, data = param[0], param[1], param[2]
-	case 4:
-		option, labelOption.label, template, data = param[0], param[1], param[2], param[3]
-	default:
+	// switch len(param) {
+	// case 2:
+	// 	template, data = param[0], param[1]
+	// case 3:
+	// 	optionLabel, template, data = param[0], param[1], param[2]
+	// case 4:
+	// 	option, labelOption.label, template, data = param[0], param[1], param[2], param[3]
+	// case 5:
+	// 	nullOption, option, labelOption.label, template, data = param[0], param[1], param[2], param[3], param[4]
+	// default:
+	// 	fmt.Fprintf(errStream, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+	// }
+	if len(param) < 2 || len(param) > 5 {
 		fmt.Fprintf(errStream, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-		// util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+	}
+
+	isL := false
+	for i, p := range param {
+		if strings.HasPrefix(p, "-h") || strings.HasPrefix(p, "-l") {
+			if isL == true {
+				// -hと-lはどちらか1回のみ指定可能
+				util.Fatal(errors.New("failed to read param: -h xor -l"), util.ExitCodeFlagErr)
+			}
+			if len(p) > 2 {
+				optionLabel = p
+				isL = true
+			} else {
+				option = p
+				isL = true
+			}
+		}
+		if strings.HasPrefix(p, "-d") {
+			labelOption.nullCharacter = p[2:]
+		}
+		if i == len(param)-2 {
+			template = p
+		}
+		if i == len(param)-1 {
+			data = p
+		}
 	}
 
 	if optionLabel != "" {
-		if !strings.HasPrefix(optionLabel, "-h") && !strings.HasPrefix(optionLabel, "-l") {
-			labelOption.label = optionLabel
-		} else {
-			option, labelOption.label = optionLabel[0:2], optionLabel[2:]
-		}
+		option, labelOption.label = optionLabel[0:2], optionLabel[2:]
 	}
 
 	if option != "" {
 		if !strings.HasPrefix(option, "-h") && !strings.HasPrefix(option, "-l") {
-			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+			util.Fatal(errors.New("failed to read param: -h xor -l"), util.ExitCodeFlagErr)
 		}
 		if option == "-h" {
 			labelOption.isHier = true
@@ -162,6 +189,9 @@ func mojihame(templateString string, dataRecord []string, outStream io.Writer, l
 			if key != "" {
 				key, _ := strconv.Atoi(keySepStr[1])
 				key--
+				if dr[key] == labelOption.nullCharacter {
+					dr[key] = ""
+				}
 				fmt.Fprint(outStream, dr[key]+str)
 			} else {
 				fmt.Fprint(outStream, tr)
@@ -201,6 +231,9 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 			if key != "" {
 				key, _ := strconv.Atoi(keySepStr[1])
 				key--
+				if dr[key] == labelOption.nullCharacter {
+					dr[key] = ""
+				}
 				fmt.Fprint(outStream, dr[key]+str)
 			} else {
 				fmt.Fprint(outStream, tr)
