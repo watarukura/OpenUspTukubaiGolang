@@ -62,18 +62,6 @@ func validateParam(param []string, inStream io.Reader, errStream io.Writer, labe
 	option := ""
 	var template string
 	var data string
-	// switch len(param) {
-	// case 2:
-	// 	template, data = param[0], param[1]
-	// case 3:
-	// 	optionLabel, template, data = param[0], param[1], param[2]
-	// case 4:
-	// 	option, labelOption.label, template, data = param[0], param[1], param[2], param[3]
-	// case 5:
-	// 	nullOption, option, labelOption.label, template, data = param[0], param[1], param[2], param[3], param[4]
-	// default:
-	// 	fmt.Fprintf(errStream, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-	// }
 	if len(param) < 2 || len(param) > 5 {
 		fmt.Fprintf(errStream, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 	}
@@ -242,36 +230,3 @@ func mojihameLabel(templateString string, dataRecord []string, outStream io.Writ
 	}
 	fmt.Fprint(outStream, end)
 }
-
-// func mojihameHier(templateString string, dataRecord []string, outStream io.Writer, labelOption *labelOption) {
-// 	templateRecords := strings.Split(templateString, labelOption.label+"\n")
-// 	prev, labeled, end := templateRecords[0], templateRecords[1], templateRecords[2]
-// 	templateRecord := strings.Split(labeled, "%")
-// 	keyCount := len(templateRecord) - 1
-// 	var dataRecords [][]string
-// 	for len(dataRecord) >= keyCount {
-// 		dataRecords = append(dataRecords, dataRecord[0:keyCount])
-// 		dataRecord = dataRecord[keyCount:]
-// 	}
-
-// 	fmt.Fprint(outStream, prev)
-// 	for _, dr := range dataRecords {
-// 		for i, tr := range templateRecord {
-// 			if i == 0 {
-// 				fmt.Fprint(outStream, tr)
-// 				continue
-// 			}
-// 			rep := regexp.MustCompile(`(\d*)([ \n].*)`)
-// 			keySepStr := rep.FindStringSubmatch(tr)
-// 			key, str := keySepStr[1], keySepStr[2]
-// 			if key != "" {
-// 				key, _ := strconv.Atoi(keySepStr[1])
-// 				key--
-// 				fmt.Fprint(outStream, dr[key]+str)
-// 			} else {
-// 				fmt.Fprint(outStream, tr)
-// 			}
-// 		}
-// 	}
-// 	fmt.Fprint(outStream, end)
-// }
