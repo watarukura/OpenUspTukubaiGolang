@@ -41,7 +41,7 @@ func (c *cli) run(args []string) int {
 	if err != nil {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
-	fmt.Println(param)
+	// fmt.Println(param)
 	option := &option{nullCharacter: "@", brankCharacter: " ", isScript: false}
 
 	org, dst, scriptString, targetString := validateParam(param, c.inStream, option)
@@ -71,7 +71,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 	dst = ""
 	script := ""
 	file := ""
-	for i, p := range param {
+	for _, p := range param {
 		// fmt.Print(i)
 		// fmt.Println(": " + p)
 		// fmt.Println("prev: " + prev)
@@ -157,7 +157,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 	}
 
-	fmt.Println(file)
+	// fmt.Println(file)
 
 	buf.Reset()
 	var targetFile io.Reader
@@ -186,13 +186,17 @@ func calsed(org string, dst string, targetString string, opt *option) (replacedB
 }
 func calsedScript(scriptString string, targetString string, opt *option) string {
 	org, dst := "", ""
+	// fmt.Println(scriptString)
 	scriptRecord := strings.Split(scriptString, "\n")
+	// fmt.Println(scriptRecord)
 	for _, sr := range scriptRecord {
-		orgdst := strings.Split(sr, " ")
-		if len(orgdst) == 1 {
-			org, dst = orgdst[0], ""
+		// fmt.Println(sr + "!")
+		index := strings.Index(sr, " ")
+		// fmt.Println(index)
+		if index == -1 {
+			org, dst = sr, ""
 		} else {
-			org, dst = orgdst[0], orgdst[1]
+			org, dst = sr[0:index], sr[index+1:]
 		}
 		targetString = calsed(org, dst, targetString, opt)
 	}
