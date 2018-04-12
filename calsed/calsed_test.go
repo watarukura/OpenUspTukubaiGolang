@@ -20,8 +20,20 @@ func TestCalsedFileInput(t *testing.T) {
 			input: "NAME usp testdata/TEST1-file.txt",
 			want:  "<td>usp</td>\n<td>AGE</td>\n",
 		},
+		// {
+		// 	input: `NAME "usp lab" testdata/TEST1-file.txt`,
+		// 	want:  "<td>usp lab</td>\n<td>AGE</td>\n",
+		// },
 		{
-			input: `NAME "usp lab" testdata/TEST1-file.txt`,
+			input: `NAME @ testdata/TEST1-file.txt`,
+			want:  "<td></td>\n<td>AGE</td>\n",
+		},
+		{
+			input: `-nx NAME @ testdata/TEST1-file.txt`,
+			want:  "<td>@</td>\n<td>AGE</td>\n",
+		},
+		{
+			input: `-s_ NAME usp_lab testdata/TEST1-file.txt`,
 			want:  "<td>usp lab</td>\n<td>AGE</td>\n",
 		},
 	}
@@ -42,41 +54,41 @@ func TestCalsedFileInput(t *testing.T) {
 	}
 }
 
-func TestCalsedStdInput(t *testing.T) {
-	outStream, errStream, inStream := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
+// func TestCalsedStdInput(t *testing.T) {
+// 	outStream, errStream, inStream := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 
-	cases := []struct {
-		input      string
-		inputStdin string
-		want       string
-	}{
-		{
-			input:      "- testdata/TEST1-data.txt",
-			inputStdin: "1st=%1\n2nd=%2\n3rd=%3 4th=%4\n",
-			want:       "1st=a\n2nd=b\n3rd=c 4th=d\n",
-		},
-		{
-			input:      "testdata/TEST1-template.txt -",
-			inputStdin: "a b\nc d\n",
-			want:       "1st=a\n2nd=b\n3rd=c 4th=d\n",
-		},
-	}
+// 	cases := []struct {
+// 		input      string
+// 		inputStdin string
+// 		want       string
+// 	}{
+// 		{
+// 			input:      "- testdata/TEST1-data.txt",
+// 			inputStdin: "1st=%1\n2nd=%2\n3rd=%3 4th=%4\n",
+// 			want:       "1st=a\n2nd=b\n3rd=c 4th=d\n",
+// 		},
+// 		{
+// 			input:      "testdata/TEST1-template.txt -",
+// 			inputStdin: "a b\nc d\n",
+// 			want:       "1st=a\n2nd=b\n3rd=c 4th=d\n",
+// 		},
+// 	}
 
-	for _, c := range cases {
-		outStream.Reset()
-		errStream.Reset()
-		inStream.Reset()
-		inStream = bytes.NewBufferString(c.inputStdin)
-		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
+// 	for _, c := range cases {
+// 		outStream.Reset()
+// 		errStream.Reset()
+// 		inStream.Reset()
+// 		inStream = bytes.NewBufferString(c.inputStdin)
+// 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
-		args := append([]string{"calsed"}, strings.Split(c.input, " ")...)
-		status := cli.run(args)
-		if status != util.ExitCodeOK {
-			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
-		}
+// 		args := append([]string{"calsed"}, strings.Split(c.input, " ")...)
+// 		status := cli.run(args)
+// 		if status != util.ExitCodeOK {
+// 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
+// 		}
 
-		if outStream.String() != c.want {
-			t.Errorf("Unexpected output: %s, want: %s", outStream.String(), c.want)
-		}
-	}
-}
+// 		if outStream.String() != c.want {
+// 			t.Errorf("Unexpected output: %s, want: %s", outStream.String(), c.want)
+// 		}
+// 	}
+// }

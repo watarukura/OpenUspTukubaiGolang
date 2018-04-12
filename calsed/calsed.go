@@ -40,10 +40,12 @@ func (c *cli) run(args []string) int {
 	option := &option{nullCharacter: "@", brankCharacter: " ", isScript: false}
 
 	org, dst, _, targetString := validateParam(param, c.inStream, option)
-	// fmt.Println("label: " + label)
+	// fmt.Println("org: " + org)
+	// fmt.Println("dst: " + dst)
+	// fmt.Println("targetString: " + targetString)
 
 	switch {
-	case option.isScript:
+	case !option.isScript:
 		calsed(org, dst, targetString, c.outStream, option)
 		// default:
 		// 	calsedScript(scriptFile, targetFile)
@@ -158,4 +160,5 @@ func calsed(org string, dst string, targetString string, outStream io.Writer, op
 	replacedNull := strings.Replace(replaced, opt.nullCharacter, "", -1)
 	replacedBrank := strings.Replace(replacedNull, opt.brankCharacter, " ", -1)
 	fmt.Fprint(outStream, replacedBrank)
+	// fmt.Println("replaced: " + replaced)
 }
