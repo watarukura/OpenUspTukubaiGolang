@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mattn/go-shellwords"
+
 	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
@@ -36,7 +38,10 @@ func main() {
 }
 
 func (c *cli) run(args []string) int {
-	param := args[1:]
+	param, err := shellwords.Parse(strings.Join(args[1:], " "))
+	if err != nil {
+		util.Fatal(err, util.ExitCodeFlagErr)
+	}
 	option := &option{nullCharacter: "@", brankCharacter: " ", isScript: false}
 
 	org, dst, _, targetString := validateParam(param, c.inStream, option)

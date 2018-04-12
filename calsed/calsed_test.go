@@ -20,10 +20,10 @@ func TestCalsedFileInput(t *testing.T) {
 			input: "NAME usp testdata/TEST1-file.txt",
 			want:  "<td>usp</td>\n<td>AGE</td>\n",
 		},
-		// {
-		// 	input: `NAME "usp lab" testdata/TEST1-file.txt`,
-		// 	want:  "<td>usp lab</td>\n<td>AGE</td>\n",
-		// },
+		{
+			input: `NAME "usp lab" testdata/TEST1-file.txt`,
+			want:  "<td>usp lab</td>\n<td>AGE</td>\n",
+		},
 		{
 			input: `NAME @ testdata/TEST1-file.txt`,
 			want:  "<td></td>\n<td>AGE</td>\n",
