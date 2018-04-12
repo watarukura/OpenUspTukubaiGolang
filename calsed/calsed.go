@@ -24,7 +24,6 @@ type option struct {
 	nullCharacter  string
 	brankCharacter string
 	isScript       bool
-	scriptFile     string
 }
 
 type cli struct {
@@ -42,20 +41,23 @@ func (c *cli) run(args []string) int {
 	if err != nil {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
+	fmt.Println(param)
 	option := &option{nullCharacter: "@", brankCharacter: " ", isScript: false}
 
-	org, dst, _, targetString := validateParam(param, c.inStream, option)
+	org, dst, scriptString, targetString := validateParam(param, c.inStream, option)
 	// fmt.Println("org: " + org)
 	// fmt.Println("dst: " + dst)
 	// fmt.Println("targetString: " + targetString)
 
+	result := ""
 	switch {
 	case !option.isScript:
-		calsed(org, dst, targetString, c.outStream, option)
-		// default:
-		// 	calsedScript(scriptFile, targetFile)
+		result = calsed(org, dst, targetString, option)
+	default:
+		result = calsedScript(scriptString, targetString, option)
 	}
 
+	fmt.Fprint(c.outStream, result)
 	return util.ExitCodeOK
 }
 
@@ -69,7 +71,10 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 	dst = ""
 	script := ""
 	file := ""
-	for _, p := range param {
+	for i, p := range param {
+		// fmt.Print(i)
+		// fmt.Println(": " + p)
+		// fmt.Println("prev: " + prev)
 		if strings.HasPrefix(p, "-n") {
 			if len(p) > 2 {
 				opt.nullCharacter = p[2:]
@@ -88,10 +93,12 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 		if prev == "n" {
 			opt.nullCharacter = p
+			prev = ""
 			continue
 		}
 		if prev == "b" {
 			opt.nullCharacter = p
+			prev = ""
 			continue
 		}
 		if strings.HasPrefix(p, "-f") {
@@ -99,24 +106,32 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 			opt.isScript = true
 			continue
 		}
-		if prev == "f" {
-			script = p
-			continue
-		}
-		if org == "" {
-			org = p
-			continue
-		}
-		if dst == "" {
-			dst = p
-			continue
+		if opt.isScript {
+			if prev == "f" {
+				script = p
+				prev = ""
+				continue
+			}
+		} else {
+			if org == "" {
+				org = p
+				continue
+			}
+			if dst == "" {
+				dst = p
+				continue
+			}
 		}
 		if file == "" {
 			file = p
 		}
 	}
 
+	// fmt.Println("file: " + file)
+	// fmt.Println("script: " + script)
+
 	var scriptFile io.Reader
+	buf := new(bytes.Buffer)
 	if opt.isScript {
 		if script == "-" && file == "-" {
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
@@ -134,7 +149,6 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 			}
 			scriptFile = bufio.NewReader(sf)
 		}
-		buf := new(bytes.Buffer)
 		buf.ReadFrom(scriptFile)
 		scriptString = buf.String()
 	} else {
@@ -143,6 +157,9 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 	}
 
+	fmt.Println(file)
+
+	buf.Reset()
 	var targetFile io.Reader
 	if file == "-" || file == "" {
 		targetFile = bufio.NewReader(inStream)
@@ -153,17 +170,31 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 		targetFile = bufio.NewReader(tf)
 	}
-	buf := new(bytes.Buffer)
 	buf.ReadFrom(targetFile)
 	targetString = buf.String()
 
 	return org, dst, scriptString, targetString
 }
 
-func calsed(org string, dst string, targetString string, outStream io.Writer, opt *option) {
+func calsed(org string, dst string, targetString string, opt *option) (replacedBrank string) {
 	replaced := strings.Replace(targetString, org, dst, -1)
 	replacedNull := strings.Replace(replaced, opt.nullCharacter, "", -1)
-	replacedBrank := strings.Replace(replacedNull, opt.brankCharacter, " ", -1)
-	fmt.Fprint(outStream, replacedBrank)
+	replacedBrank = strings.Replace(replacedNull, opt.brankCharacter, " ", -1)
+
+	return replacedBrank
 	// fmt.Println("replaced: " + replaced)
+}
+func calsedScript(scriptString string, targetString string, opt *option) string {
+	org, dst := "", ""
+	scriptRecord := strings.Split(scriptString, "\n")
+	for _, sr := range scriptRecord {
+		orgdst := strings.Split(sr, " ")
+		if len(orgdst) == 1 {
+			org, dst = orgdst[0], ""
+		} else {
+			org, dst = orgdst[0], orgdst[1]
+		}
+		targetString = calsed(org, dst, targetString, opt)
+	}
+	return targetString
 }

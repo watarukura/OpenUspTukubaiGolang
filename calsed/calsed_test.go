@@ -36,6 +36,10 @@ func TestCalsedFileInput(t *testing.T) {
 			input: `-s_ NAME usp_lab testdata/TEST1-file.txt`,
 			want:  "<td>usp lab</td>\n<td>AGE</td>\n",
 		},
+		{
+			input: `-f testdata/TEST7-script.txt testdata/TEST1-file.txt`,
+			want:  "<td></td>\n<td></td>\n",
+		},
 	}
 
 	for _, c := range cases {
