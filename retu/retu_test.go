@@ -8,7 +8,7 @@ import (
 	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
-func TestGetLastFileInput(t *testing.T) {
+func TestRetuFileInput(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &cli{outStream: outStream, errStream: errStream}
 
@@ -38,7 +38,7 @@ func TestGetLastFileInput(t *testing.T) {
 	}
 }
 
-func TestGetLastStdInput(t *testing.T) {
+func TestRetuStdInput(t *testing.T) {
 	outStream, errStream, inStream := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 
 	cases := []struct {
