@@ -29,7 +29,7 @@ func main() {
 }
 
 func (c *cli) run(args []string) int {
-	flags := flag.NewFlagSet("getlast", flag.ContinueOnError)
+	flags := flag.NewFlagSet("retu", flag.ContinueOnError)
 	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		flag.PrintDefaults()

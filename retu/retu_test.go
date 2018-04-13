@@ -26,7 +26,7 @@ func TestGetLastFileInput(t *testing.T) {
 		outStream.Reset()
 		errStream.Reset()
 
-		args := append([]string{"getlast"}, strings.Split(c.input, " ")...)
+		args := append([]string{"retu"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
@@ -65,7 +65,7 @@ func TestGetLastStdInput(t *testing.T) {
 		inStream = bytes.NewBufferString(c.inputStdin)
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
-		args := []string{"getfirst"}
+		args := []string{"retu"}
 		// fmt.Println(args)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
