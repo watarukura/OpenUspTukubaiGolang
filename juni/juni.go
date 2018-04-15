@@ -115,12 +115,13 @@ func juni(record []string, start int, end int, outStream io.Writer) {
 		for _, r := range record {
 			rr := strings.Split(r, " ")
 			key := strings.Join(rr[start:end], " ")
-			// fmt.Println(key + ": " + prev)
 			if key != prev {
 				i = 1
 			}
 			order := strconv.Itoa(i)
+			// fmt.Println(key + ": " + prev + ": " + order)
 			fmt.Fprintln(outStream, order+" "+r)
+			prev = key
 			i++
 		}
 	}
