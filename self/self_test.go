@@ -104,21 +104,21 @@ func TestSelfStdInput(t *testing.T) {
 		},
 	}
 
-	for _, c := range cases {
+	for i, c := range cases {
 		inStream.Reset()
 		outStream.Reset()
 		errStream.Reset()
 		inStream = bytes.NewBufferString(c.inputStdin)
 		cli := &cli{outStream: outStream, errStream: errStream, inStream: inStream}
 
-		args := append([]string{"count"}, strings.Split(c.input, " ")...)
+		args := append([]string{"self"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)
 		}
 
 		if outStream.String() != c.want {
-			t.Errorf("Unexpected output: %s, want: %s", outStream.String(), c.want)
+			t.Errorf("case: %d, Unexpected output: %s, want: %s", i, outStream.String(), c.want)
 		}
 	}
 }

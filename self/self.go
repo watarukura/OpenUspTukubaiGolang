@@ -46,17 +46,19 @@ func (c *cli) run(args []string) int {
 	param := flags.Args()
 	// debug: fmt.Println(param)
 
-	validParam, records := validateParam(param, c.inStream)
+	// validParam, records := validateParam(param, c.inStream)
+	fieldNumbers, substrFields, records := validateParam(param, c.inStream)
 
-	result := selectField(validParam, records)
+	results := selectField(fieldNumbers, substrFields, records)
+	// result := selectField(validParam, records)
 	// debug: fmt.Println(fields)
 
-	util.WriteCsv(c.outStream, result)
+	util.WriteCsv(c.outStream, results)
 
 	return util.ExitCodeOK
 }
 
-func validateParam(param []string, inStream io.Reader) (validParam []string, records [][]string) {
+func validateParam(param []string, inStream io.Reader) (fieldNumbers []int, substrFileds map[int]string, records [][]string) {
 	if len(param) == 0 {
 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
@@ -88,197 +90,171 @@ func validateParam(param []string, inStream io.Reader) (validParam []string, rec
 		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
 
+	recordLength := len(records[0])
+
+	fieldNumbers = make([]int, 0)
+	fieldNumbersAll := make([]int, recordLength)
+	for i := 0; i < recordLength; i++ {
+		fieldNumbersAll[i] = i
+	}
+
+	substrFileds = make(map[int]string, recordLength)
+
+	// fmt.Println(fieldNumbers)
+	// fmt.Println(param)
 	for _, p := range param {
 		switch {
-		// 部分文字列取得
+		// フィールド全体
+		case p == "0":
+			fieldNumbers = append(fieldNumbers, fieldNumbersAll...)
+		// 部分文字列
 		case strings.Contains(p, "."):
-			sp := strings.Split(p, ".")
-			if len(sp) != 3 {
-				if len(sp) != 2 {
-					util.Fatal(errors.New("invalid param: "+p), util.ExitCodeFlagErr)
-				}
-			}
-			for i, spp := range sp {
-				if i == 0 {
-					if spp != "NF" {
-						_, err := strconv.Atoi(spp)
-						if err != nil {
-							util.Fatal(err, util.ExitCodeParseFlagErr)
-						}
-					}
-				} else {
-					_, err := strconv.Atoi(spp)
-					if err != nil {
-						util.Fatal(err, util.ExitCodeParseFlagErr)
-					}
-				}
-			}
-		// 部分配列取得
-		case strings.Contains(p, "/"):
-			sp := strings.Split(p, "/")
-			from, to := sp[0], sp[1]
-			if len(sp) != 2 {
-				util.Fatal(errors.New("invalid param: "+p), util.ExitCodeFlagErr)
-			}
-			if strings.HasPrefix(from, "NF") {
-				if len(from) > 2 {
-					sign := from[2:3]
-					if sign != "-" {
-						util.Fatal(errors.New("invalid param: "+p), util.ExitCodeFlagErr)
-					}
-					_, err := strconv.Atoi(from[3:])
-					if err != nil {
-						util.Fatal(err, util.ExitCodeParseFlagErr)
-					}
-				}
+			nfStartLength := strings.Split(p, ".")
+			var nf string
+			var start string
+			var length string
+			var num int
+			if len(nfStartLength) == 2 {
+				nf, length = nfStartLength[0], nfStartLength[1]
 			} else {
-				_, err := strconv.Atoi(from)
-				if err != nil {
-					util.Fatal(err, util.ExitCodeParseFlagErr)
-				}
-
+				nf, start, length = nfStartLength[0], nfStartLength[1], nfStartLength[2]
 			}
-
-			if strings.HasPrefix(to, "NF") {
-				if len(to) > 2 {
-					sign := to[2:3]
-					if sign != "-" {
-						util.Fatal(errors.New("invalid param: "+p), util.ExitCodeFlagErr)
-					}
-					_, err := strconv.Atoi(to[3:])
-					if err != nil {
-						util.Fatal(err, util.ExitCodeParseFlagErr)
-					}
-				}
+			if nf == "NF" {
+				num = recordLength
 			} else {
-				_, err := strconv.Atoi(to)
+				num, err = strconv.Atoi(nf)
 				if err != nil {
 					util.Fatal(err, util.ExitCodeParseFlagErr)
 				}
 			}
-		// 配列末尾からのカウントで取得
-		case strings.HasPrefix(p, "NF"):
-			if len(p) > 2 {
-				sign := p[2:3]
-				if sign != "-" {
-					util.Fatal(errors.New("invalid param: "+p), util.ExitCodeFlagErr)
-				}
-				_, err := strconv.Atoi(p[3:])
-				if err != nil {
-					util.Fatal(err, util.ExitCodeParseFlagErr)
-				}
-			}
-		// 配列のindex指定で取得
-		default:
-			_, err := strconv.Atoi(p)
+			fieldNumbers = append(fieldNumbers, num-1)
+			_, err = strconv.Atoi(length)
 			if err != nil {
 				util.Fatal(err, util.ExitCodeParseFlagErr)
 			}
+			if start != "" {
+				_, err = strconv.Atoi(start)
+				if err != nil {
+					util.Fatal(err, util.ExitCodeParseFlagErr)
+				}
+			}
+			substrFileds[num-1] = strings.Replace(p, "NF", strconv.Itoa(recordLength-1), -1)
+		// 部分配列
+		case strings.Contains(p, "/"):
+			fromTo := strings.Split(p, "/")
+			from, to := fromTo[0], fromTo[1]
+			var fromNum int
+			var toNum int
+			if strings.HasPrefix(from, "NF") {
+				fromNum = translateNF(from, recordLength)
+			} else {
+				fromNum, _ = strconv.Atoi(from)
+			}
+
+			if strings.HasPrefix(to, "NF") {
+				toNum = translateNF(to, recordLength)
+			} else {
+				toNum, err = strconv.Atoi(to)
+				if err != nil {
+					util.Fatal(err, util.ExitCodeParseFlagErr)
+				}
+			}
+			fieldNumbers = append(fieldNumbers, fieldNumbersAll[fromNum-1:toNum]...)
+		case strings.HasPrefix(p, "NF"):
+			num := translateNF(p, recordLength)
+			fieldNumbers = append(fieldNumbers, num-1)
+		default:
+			num, err := strconv.Atoi(p)
+			if err != nil {
+				util.Fatal(err, util.ExitCodeParseFlagErr)
+			}
+			fieldNumbers = append(fieldNumbers, num-1)
 		}
 	}
+	// fmt.Println(fieldNumbers)
+	// fmt.Println(fieldNumbersAll)
 
-	return param, records
+	return fieldNumbers, substrFileds, records
 }
 
-func selectField(param []string, records [][]string) (result [][]string) {
-	var field string
-	var record []string
-	for _, line := range records {
-		for _, p := range param {
-			switch {
-			case p == "NF":
-				field = line[len(line)-1]
-				record = append(record, field)
-			case p == "0":
-				fields := make([]string, len(line))
-				copy(fields, line)
-				record = append(record, fields...)
-			case strings.Contains(p, "."):
-				nfStartLength := strings.Split(p, ".")
-				var nf string
-				var start string
-				var length string
-				var num int
-				var startNum int
-				var lenNum int
-				var str string
-				if len(nfStartLength) == 2 {
-					nf, length = nfStartLength[0], nfStartLength[1]
-					if nf == "NF" {
-						num = len(line)
-					} else {
-						num, _ = strconv.Atoi(nf)
-					}
-					lenNum, _ = strconv.Atoi(length)
-					str := line[num-1]
-					startNum = utf8.RuneCountInString(str) - lenNum
-					r := []rune(str)
-					field = string(r[startNum:])
-					record = append(record, field)
-				} else {
-					nf, start, length = nfStartLength[0], nfStartLength[1], nfStartLength[2]
-					if nf == "NF" {
-						num = len(line)
-					} else {
-						num, _ = strconv.Atoi(nf)
-					}
-					startNum, _ = strconv.Atoi(start)
-					lenNum, _ = strconv.Atoi(length)
-					str = line[num-1]
-					r := []rune(str)
-					field = string(r[startNum-1 : startNum-1+lenNum])
-					record = append(record, field)
-				}
-			case strings.Contains(p, "/"):
-				fromTo := strings.Split(p, "/")
-				from, to := fromTo[0], fromTo[1]
-				var fromNum int
-				var toNum int
-				if strings.HasPrefix(from, "NF") {
-					if len(from) > 2 {
-						nfMinus, _ := strconv.Atoi(from[3:])
-						fromNum = len(line) - nfMinus
-					} else {
-						fromNum = len(line)
-					}
-				} else {
-					fromNum, _ = strconv.Atoi(from)
-				}
-
-				if strings.HasPrefix(to, "NF") {
-					if len(to) > 2 {
-						nfMinus, _ := strconv.Atoi(to[3:])
-						toNum = len(line) - nfMinus
-					} else {
-						toNum = len(line)
-					}
-				} else {
-					toNum, _ = strconv.Atoi(to)
-				}
-				fields := make([]string, len(line[fromNum-1:toNum]))
-				copy(fields, line[fromNum-1:toNum])
-				record = append(record, fields...)
-			case strings.HasPrefix(p, "NF"):
-				var num int
-				if len(p) > 2 {
-					nfMinus, _ := strconv.Atoi(p[3:])
-					num = len(line) - 1 - nfMinus
-					field = line[num]
-				} else {
-					field = line[len(line)-1]
-				}
-				record = append(record, field)
-			default:
-				num, _ := strconv.Atoi(p)
-				field = line[num-1]
-				record = append(record, field)
-			}
+func translateNF(pp string, recordLength int) (num int) {
+	if len(pp) > 2 {
+		sign := pp[2:3]
+		if sign != "-" {
+			util.Fatal(errors.New("invalid param: "+pp), util.ExitCodeFlagErr)
 		}
-		// debug: fmt.Println(record)
-		result = append(result, record)
-		record = []string{}
+		_, err := strconv.Atoi(pp[3:])
+		nfMinus, err := strconv.Atoi(pp[3:])
+		if err != nil {
+			util.Fatal(err, util.ExitCodeParseFlagErr)
+		}
+		num = recordLength - nfMinus
+	} else {
+		num = recordLength
 	}
 
-	// debug: fmt.Println(result)
-	return result
+	return num
+}
+
+func selectField(fieldNumbers []int, substrFields map[int]string, records [][]string) (results [][]string) {
+	// fmt.Println(fieldNumbers)
+	// fmt.Println(substrFields)
+	// 2次元配列を転置
+	cn := len(records[0])
+	transposed := make([][]string, cn)
+
+	for _, l := range records {
+		for j, c := range l {
+			transposed[j] = append(transposed[j], c)
+		}
+	}
+	// fmt.Println(transposed)
+
+	// パラメータで指定した列を行としてappendする
+	selectedLine := make([][]string, 0)
+	startNum, lenNum := 0, 0
+	start, length := "", ""
+	for _, fn := range fieldNumbers {
+		// fmt.Println(fn)
+		// fmt.Println(substrFields[fn])
+		if substr, ok := substrFields[fn]; ok {
+			nfStartLength := strings.Split(substr, ".")
+			// fmt.Println(len(nfStartLength))
+			var substredLine []string
+			if len(nfStartLength) == 2 {
+				_, length = nfStartLength[0], nfStartLength[1]
+				lenNum, _ = strconv.Atoi(length)
+				for _, v := range transposed[fn] {
+					r := []rune(v)
+					startNum = utf8.RuneCountInString(v) - lenNum
+					substredLine = append(substredLine, string(r[startNum:]))
+				}
+			} else {
+				_, start, length = nfStartLength[0], nfStartLength[1], nfStartLength[2]
+				startNum, _ = strconv.Atoi(start)
+				startNum--
+				lenNum, _ = strconv.Atoi(length)
+				// fmt.Println(startNum)
+				// fmt.Println(lenNum)
+				for _, v := range transposed[fn] {
+					r := []rune(v)
+					substredLine = append(substredLine, string(r[startNum:startNum+lenNum]))
+				}
+			}
+			selectedLine = append(selectedLine, substredLine)
+		} else {
+			selectedLine = append(selectedLine, transposed[fn])
+		}
+	}
+	// fmt.Println(selectedLine)
+
+	// 再度転置して戻す
+	rn := len(transposed[0])
+	results = make([][]string, rn)
+	for _, l := range selectedLine {
+		for j, c := range l {
+			results[j] = append(results[j], c)
+		}
+	}
+	return results
 }
