@@ -183,7 +183,6 @@ func translateNF(pp string, recordLength int) (num int) {
 		if sign != "-" {
 			util.Fatal(errors.New("invalid param: "+pp), util.ExitCodeFlagErr)
 		}
-		_, err := strconv.Atoi(pp[3:])
 		nfMinus, err := strconv.Atoi(pp[3:])
 		if err != nil {
 			util.Fatal(err, util.ExitCodeParseFlagErr)
