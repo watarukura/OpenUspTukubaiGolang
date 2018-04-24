@@ -57,6 +57,7 @@ func plus(param []string, inStream io.Reader, outStream io.Writer) {
 			util.Fatal(errors.New("failed to read param"), util.ExitCodeNG)
 		}
 		sum += num
+		// 小数点以下の最大桁数を取得
 		if strings.Contains(p, ".") {
 			tmpPrec = len(strings.Split(p, ".")[1])
 		}
@@ -64,6 +65,7 @@ func plus(param []string, inStream io.Reader, outStream io.Writer) {
 			maxPrec = tmpPrec
 		}
 	}
+	// 小数点以下の最大桁数で切る
 	sumStr := strconv.FormatFloat(sum, 'f', maxPrec, 64)
 	fmt.Fprint(outStream, sumStr)
 }
