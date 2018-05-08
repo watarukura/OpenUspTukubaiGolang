@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	shellwords "github.com/mattn/go-shellwords"
 	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
@@ -41,7 +42,7 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{columnCount: 0, keyFieldNumber: 0}
+	option := &option{columnCount: 1, keyFieldNumber: 1}
 
 	records := validateParam(param, c.inStream, option)
 	// fmt.Println("org: " + org)
@@ -98,11 +99,11 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 	if file == "-" || file == "" {
 		reader = bufio.NewReader(inStream)
 	} else {
-		tf, err := os.Open(file)
+		f, err := os.Open(file)
 		if err != nil {
 			util.Fatal(err, util.ExitCodeFileOpenErr)
 		}
-		reader = bufio.NewReader(tf)
+		reader = bufio.NewReader(f)
 	}
 
 	csvr := csv.NewReader(reader)
@@ -119,5 +120,15 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 }
 
 func tarr(records [][]string, opt *option) (results [][]string) {
+	var line []string
+	for _, r := range records {
+		copy(line, r[:opt.keyFieldNumber])
+		fmt.Println(line)
+		remain := len(r[opt.keyFieldNumber:])
+		for i := 0; i < remain; i += opt.columnCount {
+			line = append(line, r[opt.keyFieldNumber+i:]...)
+		}
+		results = append(results, line)
+	}
 	return results
 }
