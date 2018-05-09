@@ -42,7 +42,7 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{columnCount: 1, keyFieldNumber: 1}
+	option := &option{columnCount: 1, keyFieldNumber: 0}
 
 	records := validateParam(param, c.inStream, option)
 	// fmt.Println("org: " + org)
@@ -61,29 +61,24 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 	}
 
 	var err error
-	prev := ""
 	file := ""
 	for _, p := range param {
 		// fmt.Print(i)
 		// fmt.Println(": " + p)
 		// fmt.Println("prev: " + prev)
-		if strings.HasPrefix(p, "-num") {
-			prev = "num"
-			continue
-		}
-		if strings.HasPrefix(p, "-") {
-			columnCountString := p[2:]
-			opt.columnCount, err = strconv.Atoi(columnCountString)
+		if strings.HasPrefix(p, "num") {
+			keyFieldString := p[4:]
+			opt.keyFieldNumber, err = strconv.Atoi(keyFieldString)
 			if err != nil {
-				util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+				util.Fatal(errors.New("failed to read param: "+p), util.ExitCodeFlagErr)
 			}
 			continue
 		}
-		if prev == "num" {
-			keyFieldString := p
-			opt.keyFieldNumber, err = strconv.Atoi(keyFieldString)
+		if strings.HasPrefix(p, "-") {
+			columnCountString := p[1:]
+			opt.columnCount, err = strconv.Atoi(columnCountString)
 			if err != nil {
-				util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+				util.Fatal(errors.New("failed to read param: "+p), util.ExitCodeFlagErr)
 			}
 			continue
 		}
@@ -120,15 +115,28 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 }
 
 func tarr(records [][]string, opt *option) (results [][]string) {
+	// fmt.Println(records)
 	var line []string
+	var result []string
 	for _, r := range records {
+		line = make([]string, opt.keyFieldNumber)
 		copy(line, r[:opt.keyFieldNumber])
-		fmt.Println(line)
-		remain := len(r[opt.keyFieldNumber:])
-		for i := 0; i < remain; i += opt.columnCount {
-			line = append(line, r[opt.keyFieldNumber+i:]...)
+		// line = r[:opt.keyFieldNumber]
+		// fmt.Println(line)
+		remainCount := len(r[opt.keyFieldNumber:])
+		remain := r[opt.keyFieldNumber:]
+		// fmt.Println(remain)
+		// fmt.Println(opt.columnCount)
+		for i := 0; i < remainCount; i += opt.columnCount {
+			// fmt.Println(i)
+			// fmt.Println(i + opt.columnCount)
+			result = append(line, remain[i:i+opt.columnCount]...)
+			// fmt.Println(result)
+			results = append(results, result)
+			// result = []string{}
+			// fmt.Println(results)
 		}
-		results = append(results, line)
 	}
+	// fmt.Println(results)
 	return results
 }
