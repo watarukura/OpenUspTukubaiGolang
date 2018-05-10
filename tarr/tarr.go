@@ -106,9 +106,12 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 	csvr.Comma = delm
 	csvr.TrimLeadingSpace = true
 
-	records, err = csvr.ReadAll()
-	if err != nil {
-		util.Fatal(err, util.ExitCodeCsvFormatErr)
+	for {
+		record, err := csvr.Read()
+		records = append(records, record)
+		if err == io.EOF {
+			break
+		}
 	}
 
 	return records
@@ -119,10 +122,15 @@ func tarr(records [][]string, opt *option) (results [][]string) {
 	var line []string
 	var result []string
 	for _, r := range records {
+		if len(r) == 0 {
+			break
+		}
+		// fmt.Println(r)
 		line = make([]string, opt.keyFieldNumber)
 		copy(line, r[:opt.keyFieldNumber])
-		// line = r[:opt.keyFieldNumber]
 		// fmt.Println(line)
+		// fmt.Println(i)
+		// line = r[:opt.keyFieldNumber]
 		remainCount := len(r[opt.keyFieldNumber:])
 		remain := r[opt.keyFieldNumber:]
 		// fmt.Println(remain)

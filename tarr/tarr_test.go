@@ -19,7 +19,7 @@ func TestTarrStdInput(t *testing.T) {
 		{
 			input:      "",
 			inputStdin: "あ 1 い 2 う",
-			want:       "あ\n1\nい\n2\nう",
+			want:       "あ\n1\nい\n2\nう\n",
 		},
 		{
 			input:      "num=1",
