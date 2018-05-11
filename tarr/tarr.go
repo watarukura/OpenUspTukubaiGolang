@@ -138,7 +138,11 @@ func tarr(records [][]string, opt *option) (results [][]string) {
 		for i := 0; i < remainCount; i += opt.columnCount {
 			// fmt.Println(i)
 			// fmt.Println(i + opt.columnCount)
-			result = append(line, remain[i:i+opt.columnCount]...)
+			if i+opt.columnCount > remainCount {
+				result = append(line, remain[i:]...)
+			} else {
+				result = append(line, remain[i:i+opt.columnCount]...)
+			}
 			// fmt.Println(result)
 			results = append(results, result)
 			// result = []string{}
