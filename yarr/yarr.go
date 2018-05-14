@@ -49,7 +49,7 @@ func (c *cli) run(args []string) int {
 	// fmt.Println("dst: " + dst)
 	// fmt.Println("targetString: " + targetString)
 
-	results := tarr(records, option)
+	results := yarr(records, option)
 	util.WriteCsv(c.outStream, results)
 
 	return util.ExitCodeOK
@@ -117,43 +117,30 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 	return records
 }
 
-func tarr(records [][]string, opt *option) (results [][]string) {
-	var line []string
-	var prevLine []string
+func yarr(records [][]string, opt *option) (results [][]string) {
+	// fmt.Println(records)
+	var keys []string
 	var key string
 	var prev string
-	for i, r := range records {
+	var values []string
+	var prevValues []string
+	for _, r := range records {
 		if len(r) == 0 {
-			results = append(results, prevLine)
 			break
 		}
-		if i == len(records) {
-			results = append(results, prevLine)
-			break
+		keys = make([]string, opt.keyFieldNumber)
+		copy(keys, r[:opt.keyFieldNumber])
+		copy(values, r[opt.keyFieldNumber:])
+		fmt.Println(keys)
+
+		key = strings.Join(keys, " ")
+		if prev != key {
+			results = append(results, prevValues)
+			prevValues = make([]string, len(values))
 		}
-		line = make([]string, opt.keyFieldNumber)
-		copy(line, r[:opt.keyFieldNumber])
-		key = strings.Join(line, " ")
-		if prev == key {
-			line = append(prevLine, line...)
-		} else {
-			results = append(results, line)
-		}
-		// fmt.Println(key)
-		remainCount := len(r[opt.keyFieldNumber:])
-		remain := r[opt.keyFieldNumber:]
-		// fmt.Println(remain)
-		for i := 0; i < remainCount; i += opt.columnCount {
-			if i+opt.columnCount > remainCount {
-				line = append(line, remain[i:]...)
-			} else {
-				line = append(line, remain[i:i+opt.columnCount]...)
-			}
-		}
-		// fmt.Println(line)
+		prevValues = append(prevValues, values...)
 		prev = key
-		prevLine = line
-		// fmt.Println(prevLine)
 	}
+	results = append(results, prevValues)
 	return results
 }
