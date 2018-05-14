@@ -18,26 +18,26 @@ func TestTarrStdInput(t *testing.T) {
 	}{
 		{
 			input:      "",
-			inputStdin: "あ 1 い 2 う",
-			want:       "あ\n1\nい\n2\nう\n",
+			inputStdin: "山田\n山本\n田中",
+			want:       "山田 山本 田中\n",
 		},
 		{
 			input:      "num=1",
-			inputStdin: "001 あ 1 い 2 う\n001 123 345\n002 1 2\n002 1 2 3",
-			want:       "001 あ\n001 1\n001 い\n001 2\n001 う\n001 123\n001 345\n002 1\n002 2\n002 1\n002 2\n002 3\n",
+			inputStdin: "001 山田\n001 山本\n002 田中",
+			want:       "001 山田 山本\n002 田中",
 		},
 		{
 			input:      "num=1 -2",
-			inputStdin: "001 あ 1 い 2 う\n001 123 345\n002 1 2\n002 1 2 3",
-			want:       "001 あ 1\n001 い 2\n001 う\n001 123 345\n002 1 2\n002 1 2\n002 3\n",
+			inputStdin: "001 山田\n001 山本\n001 武田\n002 田中\n002 中",
+			want:       "001 山田 山本\n001 武田\n002 田中 中",
 		},
 		{
-			input:      "num=1 -2",
-			inputStdin: "001 江頭 1 い 2 江頭\n001 2\n001 123 345\n002 1 2\n002 1 2 3\n",
-			want:       "001 江頭 1\n001 い 2\n001 江頭\n001 2\n001 123 345\n002 1 2\n002 1 2\n002 3\n",
+			input:      "",
+			inputStdin: "001 山田\n001 山本\n001 武田\n002 田中\n002 中",
+			want:       "001 山田 001 山本 001 武田 002 田中 002 中",
 		},
 	}
-	for _, c := range cases {
+	for i, c := range cases {
 		outStream.Reset()
 		errStream.Reset()
 		inStream = bytes.NewBufferString(c.inputStdin)
@@ -50,7 +50,7 @@ func TestTarrStdInput(t *testing.T) {
 		}
 
 		if outStream.String() != c.want {
-			t.Errorf("Unexpected output: %s, want: %s", outStream.String(), c.want)
+			t.Errorf("%d: Unexpected output: %s, want: %s", i, outStream.String(), c.want)
 		}
 	}
 }
@@ -63,19 +63,23 @@ func TestTarrFileInput(t *testing.T) {
 		want  string
 	}{
 		{
-			input: "num=1 testdata/TEST2.txt",
-			want:  "001 あ\n001 1\n001 い\n001 2\n001 う\n001 123\n001 345\n002 1\n002 2\n002 1\n002 2\n002 3\n",
+			input: "testdata/TEST1.txt",
+			want:  "山田 山本 田中\n",
 		},
 		{
-			input: "num=1 -2 testdata/TEST2.txt",
-			want:  "001 あ 1\n001 い 2\n001 う\n001 123 345\n002 1 2\n002 1 2\n002 3\n",
+			input: "num=1 testdata/TEST2.txt",
+			want:  "001 山田 山本\n002 田中",
 		},
 		{
 			input: "num=1 -2 testdata/TEST3.txt",
-			want:  "001 江頭 1\n001 い 2\n001 江頭\n001 2\n001 123 345\n002 1 2\n002 1 2\n002 3\n",
+			want:  "001 山田 山本\n001 武田\n002 田中 中",
+		},
+		{
+			input: "testdata/TEST3.txt",
+			want:  "001 山田 001 山本 001 武田 002 田中 002 中",
 		},
 	}
-	for _, c := range cases {
+	for i, c := range cases {
 		outStream.Reset()
 		errStream.Reset()
 		inStream.Reset()
@@ -88,7 +92,7 @@ func TestTarrFileInput(t *testing.T) {
 		}
 
 		if outStream.String() != c.want {
-			t.Errorf("Unexpected output: %s, want: %s", outStream.String(), c.want)
+			t.Errorf("%d: Unexpected output: %s, want: %s", i, outStream.String(), c.want)
 		}
 	}
 }
