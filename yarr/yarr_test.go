@@ -24,17 +24,17 @@ func TestTarrStdInput(t *testing.T) {
 		{
 			input:      "num=1",
 			inputStdin: "001 山田\n001 山本\n002 田中",
-			want:       "001 山田 山本\n002 田中",
+			want:       "001 山田 山本\n002 田中\n",
 		},
 		{
 			input:      "num=1 -2",
 			inputStdin: "001 山田\n001 山本\n001 武田\n002 田中\n002 中",
-			want:       "001 山田 山本\n001 武田\n002 田中 中",
+			want:       "001 山田 山本\n001 武田\n002 田中 中\n",
 		},
 		{
 			input:      "",
 			inputStdin: "001 山田\n001 山本\n001 武田\n002 田中\n002 中",
-			want:       "001 山田 001 山本 001 武田 002 田中 002 中",
+			want:       "001 山田 001 山本 001 武田 002 田中 002 中\n",
 		},
 	}
 	for i, c := range cases {
@@ -68,15 +68,15 @@ func TestTarrFileInput(t *testing.T) {
 		},
 		{
 			input: "num=1 testdata/TEST2.txt",
-			want:  "001 山田 山本\n002 田中",
+			want:  "001 山田 山本\n002 田中\n",
 		},
 		{
 			input: "num=1 -2 testdata/TEST3.txt",
-			want:  "001 山田 山本\n001 武田\n002 田中 中",
+			want:  "001 山田 山本\n001 武田\n002 田中 中\n",
 		},
 		{
 			input: "testdata/TEST3.txt",
-			want:  "001 山田 001 山本 001 武田 002 田中 002 中",
+			want:  "001 山田 001 山本 001 武田 002 田中 002 中\n",
 		},
 	}
 	for i, c := range cases {

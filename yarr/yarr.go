@@ -124,20 +124,38 @@ func yarr(records [][]string, opt *option) (results [][]string) {
 	var prev string
 	var values []string
 	var prevValues []string
-	for _, r := range records {
+	for i, r := range records {
 		if len(r) == 0 {
 			break
 		}
 		keys = make([]string, opt.keyFieldNumber)
 		copy(keys, r[:opt.keyFieldNumber])
+		values = make([]string, len(r)-opt.keyFieldNumber)
 		copy(values, r[opt.keyFieldNumber:])
-		fmt.Println(keys)
+		// fmt.Println(keys)
+
+		if len(prevValues) == 0 {
+			prevValues = keys
+		}
 
 		key = strings.Join(keys, " ")
-		if prev != key {
+		if prev != key && i > 0 {
 			results = append(results, prevValues)
-			prevValues = make([]string, len(values))
+			prevValues = keys
 		}
+
+		// fmt.Println(opt.columnCount)
+		// for j := 0; j < len(values); j += opt.columnCount {
+		// 	if j+opt.columnCount > len(values) {
+		// 		prevValues = append(prevValues, values[j:]...)
+		// 	} else {
+		// 		prevValues = append(prevValues, values[j:j+opt.columnCount]...)
+		// 	}
+		// 	results = append(results, prevValues)
+		// 	fmt.Println(prevValues)
+		// 	fmt.Println(results)
+		// 	prevValues = keys
+		// }
 		prevValues = append(prevValues, values...)
 		prev = key
 	}
