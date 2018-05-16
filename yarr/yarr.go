@@ -42,7 +42,7 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{columnCount: 1, keyFieldNumber: 0}
+	option := &option{columnCount: 0, keyFieldNumber: 0}
 
 	records := validateParam(param, c.inStream, option)
 	// fmt.Println("org: " + org)
@@ -144,19 +144,17 @@ func yarr(records [][]string, opt *option) (results [][]string) {
 			prevValues = keys
 		}
 
-		// fmt.Println(opt.columnCount)
-		// for j := 0; j < len(values); j += opt.columnCount {
-		// 	if j+opt.columnCount > len(values) {
-		// 		prevValues = append(prevValues, values[j:]...)
-		// 	} else {
-		// 		prevValues = append(prevValues, values[j:j+opt.columnCount]...)
-		// 	}
-		// 	results = append(results, prevValues)
-		// 	fmt.Println(prevValues)
-		// 	fmt.Println(results)
-		// 	prevValues = keys
-		// }
-		prevValues = append(prevValues, values...)
+		if opt.columnCount == 0 {
+			prevValues = append(prevValues, values...)
+		} else {
+			for _, v := range values {
+				if opt.columnCount <= len(prevValues[opt.keyFieldNumber:]) {
+					results = append(results, prevValues)
+					prevValues = keys
+				}
+				prevValues = append(prevValues, v)
+			}
+		}
 		prev = key
 	}
 	results = append(results, prevValues)
