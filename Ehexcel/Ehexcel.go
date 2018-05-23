@@ -26,6 +26,8 @@ type option struct {
 	templateXlsx string
 	sheetNumber  int
 	startXY      string
+	startX       int
+	startY       int
 	inputFile    string
 	outputXlsx   string
 }
@@ -73,7 +75,13 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 	}
 
 	opt.startXY = strings.ToUpper(xyPoint)
-	if !regexp.MustCompile(`[A-Z]+[0-9]+$`).Match([]byte(opt.startXY)) {
+	re := regexp.MustCompile(`([A-Z]+)([0-9]+)$`)
+	matches := re.FindStringSubmatch(opt.startXY)
+	// fmt.Println(matches)
+	startXTitle, startYString := matches[1], matches[2]
+	opt.startX = excelize.TitleToNumber(startXTitle)
+	opt.startY, err = strconv.Atoi(startYString)
+	if err != nil {
 		util.Fatal(errors.New("failed to read param: "+xyPoint), util.ExitCodeFlagErr)
 	}
 
@@ -102,11 +110,18 @@ func ehexcel(records [][]string, opt *option) {
 		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
 	sheetName := xlsx.GetSheetName(opt.sheetNumber)
-	for x, line := range records {
-		for y, v := range line {
-			axis := translateAxis(x, y)
+	for y, line := range records {
+		offsetY := y + opt.startY
+		for x, v := range line {
+			offsetX := x + opt.startX
+			axis := translateAxis(offsetX, offsetY)
 			xlsx.SetCellValue(sheetName, axis, v)
 		}
+	}
+
+	err = xlsx.SaveAs(opt.outputXlsx)
+	if err != nil {
+		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
 }
 
