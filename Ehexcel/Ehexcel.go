@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -19,16 +20,16 @@ import (
 
 const usageText = `
 Usage of %s:
-   %s [templateExcelFileName] [sheetNumber(default: 1)] [xyPoint(default: a1)] [inputFileName] [outputExcelFileName]
+   %s [templateExcelFileName] [ [sheetNumber(ex: 1)] [xyPoint(ex: a1)] [inputFileName] ...] [outputExcelFileName]
 `
 
 type option struct {
 	templateXlsx string
-	sheetNumber  int
-	startXY      string
-	startX       int
-	startY       int
-	inputFile    string
+	sheetNumbers []int
+	startXYs     []string
+	startXs      []int
+	startYs      []int
+	inputFiles   []string
 	outputXlsx   string
 }
 
@@ -48,7 +49,7 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{templateXlsx: "", sheetNumber: 1, startXY: "a1", inputFile: "", outputXlsx: ""}
+	option := &option{templateXlsx: "", sheetNumbers: make([]int, 0), startXYs: make([]string, 0), inputFiles: make([]string, 0), outputXlsx: ""}
 
 	records := validateParam(param, c.inStream, option)
 	// fmt.Println("org: " + org)
@@ -60,62 +61,83 @@ func (c *cli) run(args []string) int {
 	return util.ExitCodeOK
 }
 
-func validateParam(param []string, inStream io.Reader, opt *option) (records [][]string) {
-	if len(param) != 5 {
-		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+func validateParam(param []string, inStream io.Reader, opt *option) (records [][][]string) {
+	if len(param) < 5 || len(param)%3 != 2 {
+		util.Fatal(errors.New("failed to read param: "+strconv.Itoa(len(param)%3)), util.ExitCodeFlagErr)
 	}
 
-	var sheetNumber string
+	var sheetNumber int
 	var xyPoint string
 	var err error
-	opt.templateXlsx, sheetNumber, xyPoint, opt.inputFile, opt.outputXlsx = param[0], param[1], param[2], param[3], param[4]
-	opt.sheetNumber, err = strconv.Atoi(sheetNumber)
-	if err != nil {
-		util.Fatal(err, util.ExitCodeFlagErr)
-	}
-
-	opt.startXY = strings.ToUpper(xyPoint)
 	re := regexp.MustCompile(`([A-Z]+)([0-9]+)$`)
-	matches := re.FindStringSubmatch(opt.startXY)
-	// fmt.Println(matches)
-	startXTitle, startYString := matches[1], matches[2]
-	opt.startX = excelize.TitleToNumber(startXTitle)
-	opt.startY, err = strconv.Atoi(startYString)
-	if err != nil {
-		util.Fatal(errors.New("failed to read param: "+xyPoint), util.ExitCodeFlagErr)
+	for i, p := range param {
+		switch {
+		case i == 0:
+			opt.templateXlsx = p
+		case i == len(param)-1:
+			opt.outputXlsx = p
+		case i%3 == 1:
+			sheetNumberStr := p
+			sheetNumber, err = strconv.Atoi(sheetNumberStr)
+			if err != nil {
+				util.Fatal(err, util.ExitCodeFlagErr)
+			}
+			opt.sheetNumbers = append(opt.sheetNumbers, sheetNumber)
+		case i%3 == 2:
+			xyPoint = strings.ToUpper(p)
+			matches := re.FindStringSubmatch(xyPoint)
+			startXTitle, startYString := matches[1], matches[2]
+			startX := excelize.TitleToNumber(startXTitle)
+			startY, err := strconv.Atoi(startYString)
+			if err != nil {
+				util.Fatal(errors.New("failed to read param: "+xyPoint), util.ExitCodeFlagErr)
+			}
+			opt.startXs = append(opt.startXs, startX)
+			opt.startYs = append(opt.startYs, startY)
+		case i%3 == 0:
+			inputFile := p
+			opt.inputFiles = append(opt.inputFiles, inputFile)
+		}
 	}
 
-	f, err := os.Open(opt.inputFile)
-	if err != nil {
-		util.Fatal(err, util.ExitCodeFileOpenErr)
-	}
-	defer f.Close()
-	reader := bufio.NewReader(f)
-	csvr := csv.NewReader(reader)
-	delm, _ := utf8.DecodeLastRuneInString(" ")
-	csvr.Comma = delm
-	csvr.TrimLeadingSpace = true
+	for _, inputFile := range opt.inputFiles {
+		f, err := os.Open(inputFile)
+		if err != nil {
+			fmt.Println(inputFile)
+			util.Fatal(err, util.ExitCodeFileOpenErr)
+		}
+		defer f.Close()
+		reader := bufio.NewReader(f)
+		csvr := csv.NewReader(reader)
+		delm, _ := utf8.DecodeLastRuneInString(" ")
+		csvr.Comma = delm
+		csvr.TrimLeadingSpace = true
 
-	records, err = csvr.ReadAll()
-	if err != nil {
-		util.Fatal(err, util.ExitCodeCsvFormatErr)
+		record, err := csvr.ReadAll()
+		if err != nil {
+			util.Fatal(err, util.ExitCodeCsvFormatErr)
+		}
+		records = append(records, record)
 	}
 
 	return records
 }
 
-func ehexcel(records [][]string, opt *option) {
+func ehexcel(records [][][]string, opt *option) {
 	xlsx, err := excelize.OpenFile(opt.templateXlsx)
 	if err != nil {
 		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
-	sheetName := xlsx.GetSheetName(opt.sheetNumber)
-	for y, line := range records {
-		offsetY := y + opt.startY
-		for x, v := range line {
-			offsetX := x + opt.startX
-			axis := translateAxis(offsetX, offsetY)
-			xlsx.SetCellValue(sheetName, axis, v)
+
+	for i, record := range records {
+		sheetName := xlsx.GetSheetName(opt.sheetNumbers[i])
+		for y, line := range record {
+			offsetY := y + opt.startYs[i]
+			for x, v := range line {
+				offsetX := x + opt.startXs[i]
+				axis := translateAxis(offsetX, offsetY)
+				xlsx.SetCellValue(sheetName, axis, v)
+			}
 		}
 	}
 
