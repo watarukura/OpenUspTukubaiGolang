@@ -12,7 +12,7 @@ import (
 
 	"github.com/mattn/go-shellwords"
 
-	util "github.com/watarukura/OpenUspTukubaiGolang/util"
+	"github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 const usageText = `
@@ -77,7 +77,7 @@ func (c *cli) run(args []string) int {
 	case option.isLastYearMode:
 		mdateLastYear(firstMonth, option, c.outStream)
 	case option.isDiffMode && option.isSequenceMode:
-		mdateDayOfWeek(lastDate, option, c.outStream)
+		mdateDiffSeq(firstDate, lastDate, option, c.outStream)
 	case option.isDiffMode && !option.isSequenceMode:
 		mdateDayOfWeek(firstMonth, option, c.outStream)
 	case !option.isDiffMode && option.isSequenceMode:
@@ -177,6 +177,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 				if err != nil {
 					util.Fatal(err, util.ExitCodeFlagErr)
 				}
+				opt.isDiffMode = true
 			}
 		}
 		if strings.Contains(p, "/") {
@@ -197,6 +198,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 				} else if signStr == "-" {
 					lastDate = firstDate.AddDate(0, 0, -1*delta)
 				}
+				opt.isDiffMode = true
 			}
 		}
 	}
@@ -236,4 +238,20 @@ func mdateDayOfWeek(firstDate time.Time, opt *option, outStream io.Writer) {
 func mdateLastYear(firstMonth time.Time, opt *option, outStream io.Writer) {
 	lastYearMonth := addMonth(firstMonth, -12)
 	fmt.Fprint(outStream, lastYearMonth.Format(layoutMonth))
+}
+
+func mdateDiffSeq(firstDate, lastDate time.Time, opt *option, outStream io.Writer) {
+	fmt.Fprint(outStream, firstDate.Format(layoutDate))
+	date := firstDate.AddDate(0, 0, 1)
+	for {
+		duration := lastDate.Sub(date)
+		durationDays := duration.Hours()/24
+		//fmt.Println(duration)
+		//fmt.Println(durationDays)
+		if durationDays < 0 {
+			break
+		}
+		fmt.Fprint(outStream, " " + date.Format(layoutDate))
+		date = date.AddDate(0, 0, 1)
+	}
 }
