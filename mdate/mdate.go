@@ -17,19 +17,13 @@ import (
 
 const usageText = `
 Usage of %s:
-日付    mdate -y <yyyymmdd>                     : 曜日
-        mdate -e <yyyywwdd>/±<dif>              : dif 日先までの日付を連続出力
-        mdate -e <yyyymmdd1> <yyyymmdd2>        : 日付の範囲を連続出力
-        mdate <yyyywwdd>/±<dif>                 : dif 日先の日付
-        mdate <yyyymmdd1> <yyyymmdd2>           : 日付の差
-        mdate <yyyymm>m/±<dif>                  : dif 月先の月
-        mdate -e <yyyymm>m/±<dif>               : dif 月先までの月を連続出力
-        mdate <yyyymm1>m <yyyymm2>m             : 月の差
-        mdate -ly <yyyymm>m                     : 前年月
+   %s -y <yyyymmdd> | [-e] <yyyymmdd>/+-<diff> | [-e] <yyyymmdd> <yyyymmdd>
 `
 
+// 曜日をintにする
 type dayOfWeekNum int
 
+// 曜日をintにする
 const (
 	Monday dayOfWeekNum = iota + 1
 	Tuesday
@@ -211,11 +205,11 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 	return firstDate, lastDate, firstMonth, lastMonth
 }
 
-func addMonth(t time.Time, d_month int) time.Time {
+func addMonth(t time.Time, dMonth int) time.Time {
 	year := t.Year()
 	month := t.Month()
 	day := t.Day()
-	newMonth := int(month) + d_month
+	newMonth := int(month) + dMonth
 	newLastDay := getLastDay(year, newMonth)
 	var newDay int
 	if day > newLastDay {
@@ -237,27 +231,49 @@ func getLastDay(year, month int) int {
 
 func mdateDayOfWeek(firstDate time.Time, opt *option, outStream io.Writer) {
 	dayOfWeek := firstDate.Weekday()
-	fmt.Fprint(outStream, dayOfWeekNum(dayOfWeek))
+	if dayOfWeek == time.Sunday {
+		fmt.Fprintln(outStream, 7)
+	} else {
+		fmt.Fprintln(outStream, dayOfWeekNum(dayOfWeek))
+	}
 }
 
 func mdateLastYear(firstMonth time.Time, opt *option, outStream io.Writer) {
 	lastYearMonth := addMonth(firstMonth, -12)
-	fmt.Fprint(outStream, lastYearMonth.Format(layoutMonth))
+	fmt.Fprintln(outStream, lastYearMonth.Format(layoutMonth))
 }
 
 func mdateDiffSeq(firstDate, lastDate time.Time, opt *option, outStream io.Writer) {
 	fmt.Fprint(outStream, firstDate.Format(layoutDate))
-	date := firstDate.AddDate(0, 0, 1)
-	for {
-		duration := lastDate.Sub(date)
-		durationDays := duration.Hours() / 24
-		//fmt.Println(duration)
-		//fmt.Println(durationDays)
-		if durationDays < 0 {
-			break
+	sign := firstDate.Sub(lastDate)
+	if sign > 0 {
+		date := firstDate.AddDate(0, 0, -1)
+		for {
+			duration := lastDate.Sub(date)
+			durationDays := duration.Hours() / 24
+			//fmt.Println(duration)
+			//fmt.Println(durationDays)
+			if durationDays > 0 {
+				fmt.Fprint(outStream, "\n")
+				break
+			}
+			fmt.Fprint(outStream, " "+date.Format(layoutDate))
+			date = date.AddDate(0, 0, -1)
 		}
-		fmt.Fprint(outStream, " "+date.Format(layoutDate))
-		date = date.AddDate(0, 0, 1)
+	} else {
+		date := firstDate.AddDate(0, 0, 1)
+		for {
+			duration := lastDate.Sub(date)
+			durationDays := duration.Hours() / 24
+			//fmt.Println(duration)
+			//fmt.Println(durationDays)
+			if durationDays < 0 {
+				fmt.Fprint(outStream, "\n")
+				break
+			}
+			fmt.Fprint(outStream, " "+date.Format(layoutDate))
+			date = date.AddDate(0, 0, 1)
+		}
 	}
 }
 
@@ -280,6 +296,7 @@ func mdateDiffSeqMonth(firstMonth, lastMonth time.Time, opt *option, outStream i
 		//fmt.Println(duration)
 		//fmt.Println(durationDays)
 		if duration < 0 {
+			fmt.Fprint(outStream, "\n")
 			break
 		}
 		fmt.Fprint(outStream, " "+month.Format(layoutMonth))
@@ -289,7 +306,6 @@ func mdateDiffSeqMonth(firstMonth, lastMonth time.Time, opt *option, outStream i
 
 func mdateDiffMonth(firstMonth, lastMonth time.Time, opt *option, outStream io.Writer) {
 	duration := firstMonth.Sub(lastMonth)
-	fmt.Println(duration)
 	count := 0
 	if duration > 0 {
 		count = 1
