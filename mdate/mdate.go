@@ -45,6 +45,7 @@ type option struct {
 	isDiffMode      bool
 	isSequenceMode  bool
 	isLastYearMode  bool
+	isMonthMode     bool
 }
 
 type cli struct {
@@ -68,7 +69,7 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false}
+	option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false, isMonthMode: false}
 
 	firstDate, lastDate, firstMonth, lastMonth := validateParam(param, c.inStream, option)
 	switch {
@@ -76,12 +77,14 @@ func (c *cli) run(args []string) int {
 		mdateDayOfWeek(firstDate, option, c.outStream)
 	case option.isLastYearMode:
 		mdateLastYear(firstMonth, option, c.outStream)
-	case option.isDiffMode && option.isSequenceMode:
+	case option.isDiffMode && option.isSequenceMode && !option.isMonthMode:
 		mdateDiffSeq(firstDate, lastDate, option, c.outStream)
-	case option.isDiffMode && !option.isSequenceMode:
-		mdateDayOfWeek(firstMonth, option, c.outStream)
-	case !option.isDiffMode && option.isSequenceMode:
-		mdateDayOfWeek(lastMonth, option, c.outStream)
+	case option.isDiffMode && !option.isSequenceMode && !option.isMonthMode:
+		mdateDiff(firstDate, lastDate, option, c.outStream)
+	case option.isDiffMode && option.isSequenceMode && option.isMonthMode:
+		mdateDiffSeqMonth(firstMonth, lastMonth, option, c.outStream)
+	case option.isDiffMode && !option.isSequenceMode && option.isMonthMode:
+		mdateDiffMonth(firstMonth, lastMonth, option, c.outStream)
 	default:
 		return util.ExitCodeNG
 	}
@@ -128,6 +131,8 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 			}
 		}
 		if strings.HasSuffix(p, "m") {
+			opt.isMonthMode = true
+			opt.isDiffMode = true
 			if len(p) == 7 {
 				if firstMonthStr == "" {
 					firstMonthStr = p[:6]
@@ -245,13 +250,65 @@ func mdateDiffSeq(firstDate, lastDate time.Time, opt *option, outStream io.Write
 	date := firstDate.AddDate(0, 0, 1)
 	for {
 		duration := lastDate.Sub(date)
-		durationDays := duration.Hours()/24
+		durationDays := duration.Hours() / 24
 		//fmt.Println(duration)
 		//fmt.Println(durationDays)
 		if durationDays < 0 {
 			break
 		}
-		fmt.Fprint(outStream, " " + date.Format(layoutDate))
+		fmt.Fprint(outStream, " "+date.Format(layoutDate))
 		date = date.AddDate(0, 0, 1)
 	}
+}
+
+func mdateDiff(firstDate, lastDate time.Time, opt *option, outStream io.Writer) {
+	duration := firstDate.Sub(lastDate)
+	hours := int(duration.Hours())
+	days := hours / 24
+	if days > 0 {
+		fmt.Fprintln(outStream, days)
+	} else {
+		fmt.Fprintln(outStream, -1*days)
+	}
+}
+
+func mdateDiffSeqMonth(firstMonth, lastMonth time.Time, opt *option, outStream io.Writer) {
+	fmt.Fprint(outStream, firstMonth.Format(layoutMonth))
+	month := addMonth(firstMonth, 1)
+	for {
+		duration := lastMonth.Sub(month).Hours()
+		//fmt.Println(duration)
+		//fmt.Println(durationDays)
+		if duration < 0 {
+			break
+		}
+		fmt.Fprint(outStream, " "+month.Format(layoutMonth))
+		month = addMonth(month, 1)
+	}
+}
+
+func mdateDiffMonth(firstMonth, lastMonth time.Time, opt *option, outStream io.Writer) {
+	duration := firstMonth.Sub(lastMonth)
+	fmt.Println(duration)
+	count := 0
+	if duration > 0 {
+		count = 1
+		for {
+			month := addMonth(firstMonth, count)
+			if month.Sub(lastMonth) > 0 {
+				break
+			}
+			count++
+		}
+	} else {
+		count = -1
+		for {
+			month := addMonth(firstMonth, count)
+			if month.Sub(lastMonth) < 0 {
+				break
+			}
+			count--
+		}
+	}
+	fmt.Fprintln(outStream, count)
 }
