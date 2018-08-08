@@ -244,36 +244,26 @@ func mdateLastYear(firstMonth time.Time, opt *option, outStream io.Writer) {
 }
 
 func mdateDiffSeq(firstDate, lastDate time.Time, opt *option, outStream io.Writer) {
-	fmt.Fprint(outStream, firstDate.Format(layoutDate))
 	sign := firstDate.Sub(lastDate)
+	var lowerDate, higherDate time.Time
 	if sign > 0 {
-		date := firstDate.AddDate(0, 0, -1)
-		for {
-			duration := lastDate.Sub(date)
-			durationDays := duration.Hours() / 24
-			//fmt.Println(duration)
-			//fmt.Println(durationDays)
-			if durationDays > 0 {
-				fmt.Fprint(outStream, "\n")
-				break
-			}
-			fmt.Fprint(outStream, " "+date.Format(layoutDate))
-			date = date.AddDate(0, 0, -1)
-		}
+		lowerDate = lastDate
+		higherDate = firstDate
 	} else {
-		date := firstDate.AddDate(0, 0, 1)
-		for {
-			duration := lastDate.Sub(date)
-			durationDays := duration.Hours() / 24
-			//fmt.Println(duration)
-			//fmt.Println(durationDays)
-			if durationDays < 0 {
-				fmt.Fprint(outStream, "\n")
-				break
-			}
-			fmt.Fprint(outStream, " "+date.Format(layoutDate))
-			date = date.AddDate(0, 0, 1)
+		lowerDate = firstDate
+		higherDate = lastDate
+	}
+
+	fmt.Fprint(outStream, lowerDate.Format(layoutDate))
+	date := lowerDate.AddDate(0, 0, 1)
+	for {
+		duration := higherDate.Sub(date)
+		if duration < 0 {
+			fmt.Fprint(outStream, "\n")
+			break
 		}
+		fmt.Fprint(outStream, " "+date.Format(layoutDate))
+		date = date.AddDate(0, 0, 1)
 	}
 }
 
