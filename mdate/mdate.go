@@ -17,7 +17,7 @@ import (
 
 const usageText = `
 Usage of %s:
-   %s -y <yyyymmdd> | [-e] <yyyymmdd>/+-<diff> | [-e] <yyyymmdd> <yyyymmdd>
+   %s -y <yyyymmdd> | [-e] <yyyymmdd>/+-<diff> | [-e] <yyyymmdd> <yyyymmdd> | [-e] <yyyymm>m/+-<diff> | [-e] <yyyymm>m <yyyymm>m | -ly <yyyymm>m
 `
 
 // 曜日をintにする
@@ -66,19 +66,27 @@ func (c *cli) run(args []string) int {
 	option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false, isMonthMode: false}
 
 	firstDate, lastDate, firstMonth, lastMonth := validateParam(param, c.inStream, option)
+	//fmt.Println(option)
+	//fmt.Println(firstMonth)
+	//fmt.Println(lastMonth)
 	switch {
 	case option.isDayOfWeekMode:
 		mdateDayOfWeek(firstDate, option, c.outStream)
 	case option.isLastYearMode:
 		mdateLastYear(firstMonth, option, c.outStream)
-	case option.isDiffMode && option.isSequenceMode && !option.isMonthMode:
+	case option.isSequenceMode && !option.isMonthMode:
 		mdateDiffSeq(firstDate, lastDate, option, c.outStream)
-	case option.isDiffMode && !option.isSequenceMode && !option.isMonthMode:
+	case !option.isDiffMode && !option.isSequenceMode && !option.isMonthMode:
 		mdateDiff(firstDate, lastDate, option, c.outStream)
-	case option.isDiffMode && option.isSequenceMode && option.isMonthMode:
+	case option.isDiffMode && !option.isSequenceMode && !option.isMonthMode:
+		mdateDiffLastDate(lastDate, option, c.outStream)
+	case option.isSequenceMode && option.isMonthMode:
 		mdateDiffSeqMonth(firstMonth, lastMonth, option, c.outStream)
-	case option.isDiffMode && !option.isSequenceMode && option.isMonthMode:
+	case !option.isDiffMode && !option.isSequenceMode && option.isMonthMode:
+		//fmt.Println(1)
 		mdateDiffMonth(firstMonth, lastMonth, option, c.outStream)
+	case option.isDiffMode && !option.isSequenceMode && option.isMonthMode:
+		mdateDiffLastMonth(lastMonth, option, c.outStream)
 	default:
 		return util.ExitCodeNG
 	}
@@ -124,9 +132,8 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 				util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 			}
 		}
-		if strings.HasSuffix(p, "m") {
+		if strings.Contains(p, "m") {
 			opt.isMonthMode = true
-			opt.isDiffMode = true
 			if len(p) == 7 {
 				if firstMonthStr == "" {
 					firstMonthStr = p[:6]
@@ -149,8 +156,8 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 					if err != nil {
 						util.Fatal(err, util.ExitCodeFlagErr)
 					}
-					signStr := p[7:8]
-					deltaStr := p[8:]
+					signStr := p[8:9]
+					deltaStr := p[9:]
 					delta, err := strconv.Atoi(deltaStr)
 					if err != nil {
 						util.Fatal(err, util.ExitCodeFlagErr)
@@ -160,6 +167,30 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 					} else if signStr == "-" {
 						lastMonth = addMonth(firstMonth, -1*delta)
 					}
+					opt.isDiffMode = true
+				}
+			}
+		} else {
+			// month modeでない場合
+			if strings.Contains(p, "/") {
+				if firstDateStr == "" {
+					firstDateStr = p[0:8]
+					firstDate, err = time.Parse(layoutDate, firstDateStr)
+					if err != nil {
+						util.Fatal(err, util.ExitCodeFlagErr)
+					}
+					signStr := p[9:10]
+					deltaStr := p[10:]
+					delta, err := strconv.Atoi(deltaStr)
+					if err != nil {
+						util.Fatal(err, util.ExitCodeFlagErr)
+					}
+					if signStr == "+" {
+						lastDate = firstDate.AddDate(0, 0, delta)
+					} else if signStr == "-" {
+						lastDate = firstDate.AddDate(0, 0, -1*delta)
+					}
+					opt.isDiffMode = true
 				}
 			}
 		}
@@ -176,28 +207,6 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 				if err != nil {
 					util.Fatal(err, util.ExitCodeFlagErr)
 				}
-				opt.isDiffMode = true
-			}
-		}
-		if strings.Contains(p, "/") {
-			if firstDateStr == "" {
-				firstDateStr = p[0:8]
-				firstDate, err = time.Parse(layoutDate, firstDateStr)
-				if err != nil {
-					util.Fatal(err, util.ExitCodeFlagErr)
-				}
-				signStr := p[9:10]
-				deltaStr := p[10:]
-				delta, err := strconv.Atoi(deltaStr)
-				if err != nil {
-					util.Fatal(err, util.ExitCodeFlagErr)
-				}
-				if signStr == "+" {
-					lastDate = firstDate.AddDate(0, 0, delta)
-				} else if signStr == "-" {
-					lastDate = firstDate.AddDate(0, 0, -1*delta)
-				}
-				opt.isDiffMode = true
 			}
 		}
 	}
@@ -271,20 +280,24 @@ func mdateDiff(firstDate, lastDate time.Time, opt *option, outStream io.Writer) 
 	duration := firstDate.Sub(lastDate)
 	hours := int(duration.Hours())
 	days := hours / 24
-	if days > 0 {
-		fmt.Fprintln(outStream, days)
-	} else {
-		fmt.Fprintln(outStream, -1*days)
-	}
+	fmt.Fprintln(outStream, days)
 }
 
 func mdateDiffSeqMonth(firstMonth, lastMonth time.Time, opt *option, outStream io.Writer) {
-	fmt.Fprint(outStream, firstMonth.Format(layoutMonth))
-	month := addMonth(firstMonth, 1)
+	sign := firstMonth.Sub(lastMonth)
+	var lowerMonth, higherMonth time.Time
+	if sign > 0 {
+		lowerMonth = lastMonth
+		higherMonth = firstMonth
+	} else {
+		lowerMonth = firstMonth
+		higherMonth = lastMonth
+	}
+
+	fmt.Fprint(outStream, lowerMonth.Format(layoutMonth))
+	month := addMonth(lowerMonth, 1)
 	for {
-		duration := lastMonth.Sub(month).Hours()
-		//fmt.Println(duration)
-		//fmt.Println(durationDays)
+		duration := higherMonth.Sub(month)
 		if duration < 0 {
 			fmt.Fprint(outStream, "\n")
 			break
@@ -297,24 +310,35 @@ func mdateDiffSeqMonth(firstMonth, lastMonth time.Time, opt *option, outStream i
 func mdateDiffMonth(firstMonth, lastMonth time.Time, opt *option, outStream io.Writer) {
 	duration := firstMonth.Sub(lastMonth)
 	count := 0
+	//fmt.Println(duration)
 	if duration > 0 {
-		count = 1
 		for {
-			month := addMonth(firstMonth, count)
-			if month.Sub(lastMonth) > 0 {
+			month := addMonth(lastMonth, count)
+			//fmt.Println(month)
+			if month.Sub(firstMonth) >= 0 {
 				break
 			}
 			count++
+			//fmt.Println(count)
 		}
 	} else {
-		count = -1
 		for {
-			month := addMonth(firstMonth, count)
-			if month.Sub(lastMonth) < 0 {
+			month := addMonth(lastMonth, count)
+			//fmt.Println(month)
+			if month.Sub(firstMonth) <= 0 {
 				break
 			}
 			count--
+			//fmt.Println(count)
 		}
 	}
 	fmt.Fprintln(outStream, count)
+}
+
+func mdateDiffLastDate(lastDate time.Time, opt *option, outStream io.Writer) {
+	fmt.Fprintln(outStream, lastDate.Format(layoutDate))
+}
+
+func mdateDiffLastMonth(lastMonth time.Time, opt *option, outStream io.Writer) {
+	fmt.Fprintln(outStream, lastMonth.Format(layoutMonth))
 }
