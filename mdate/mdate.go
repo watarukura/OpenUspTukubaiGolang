@@ -75,7 +75,7 @@ func (c *cli) run(args []string) int {
 	// if err != nil {
 	// 	util.Fatal(err, util.ExitCodeFlagErr)
 	// }
-	fmt.Println(param)
+	// fmt.Println(param)
 	// option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false, isMonthMode: false}
 
 	firstDate, lastDate, firstMonth, lastMonth := validateParam(param, c.inStream, option)
@@ -187,6 +187,21 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 			}
 		} else {
 			// month modeでない場合
+			if len(p) == 8 {
+				if firstDateStr == "" {
+					firstDateStr = p
+					firstDate, err = time.Parse(layoutDate, firstDateStr)
+					if err != nil {
+						util.Fatal(err, util.ExitCodeFlagErr)
+					}
+				} else {
+					lastDateStr = p
+					lastDate, err = time.Parse(layoutDate, lastDateStr)
+					if err != nil {
+						util.Fatal(err, util.ExitCodeFlagErr)
+					}
+				}
+			}
 			if strings.Contains(p, "/") {
 				if firstDateStr == "" {
 					firstDateStr = p[0:8]
@@ -206,21 +221,6 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 						lastDate = firstDate.AddDate(0, 0, -1*delta)
 					}
 					opt.isDiffMode = true
-				}
-			}
-		}
-		if len(p) == 8 {
-			if firstDateStr == "" {
-				firstDateStr = p
-				firstDate, err = time.Parse(layoutDate, firstDateStr)
-				if err != nil {
-					util.Fatal(err, util.ExitCodeFlagErr)
-				}
-			} else {
-				lastDateStr = p
-				lastDate, err = time.Parse(layoutDate, lastDateStr)
-				if err != nil {
-					util.Fatal(err, util.ExitCodeFlagErr)
 				}
 			}
 		}
