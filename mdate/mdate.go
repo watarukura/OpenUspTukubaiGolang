@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/mattn/go-shellwords"
 
 	"github.com/watarukura/OpenUspTukubaiGolang/util"
 )
@@ -36,7 +34,7 @@ const (
 
 type option struct {
 	isDayOfWeekMode bool
-	isDiffMode      bool
+	isDiffMode      bool // true: 差の数値を出力する false: 差分を加算した日付を出力する
 	isSequenceMode  bool
 	isLastYearMode  bool
 	isMonthMode     bool
@@ -58,12 +56,27 @@ func main() {
 }
 
 func (c *cli) run(args []string) int {
-	param, err := shellwords.Parse(strings.Join(args[1:], " "))
-	if err != nil {
-		util.Fatal(err, util.ExitCodeFlagErr)
+	flags := flag.NewFlagSet("mdate", flag.ContinueOnError)
+	flags.Usage = func() {
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		flag.PrintDefaults()
 	}
-	// fmt.Println(param)
+
 	option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false, isMonthMode: false}
+	flags.BoolVar(&option.isDayOfWeekMode, "y", false, "day of week")
+	flags.BoolVar(&option.isSequenceMode, "e", false, "days seq")
+	flags.BoolVar(&option.isLastYearMode, "ly", false, "last year")
+
+	if err := flags.Parse(args[1:]); err != nil {
+		return util.ExitCodeParseFlagErr
+	}
+	param := flags.Args()
+	// param, err := shellwords.Parse(strings.Join(args[1:], " "))
+	// if err != nil {
+	// 	util.Fatal(err, util.ExitCodeFlagErr)
+	// }
+	fmt.Println(param)
+	// option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false, isMonthMode: false}
 
 	firstDate, lastDate, firstMonth, lastMonth := validateParam(param, c.inStream, option)
 	//fmt.Println(option)
@@ -108,32 +121,34 @@ func validateParam(param []string, inStream io.Reader, opt *option) (firstDate, 
 		// fmt.Print(i)
 		// fmt.Println(": " + p)
 		// fmt.Println("prev: " + prev)
-		if strings.HasPrefix(p, "-y") {
-			if len(p) == 2 {
-				opt.isDayOfWeekMode = true
-				continue
-			} else {
-				util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
-			}
-		}
-		if strings.HasPrefix(p, "-e") {
-			if len(p) == 2 {
-				opt.isSequenceMode = true
-				continue
-			} else {
-				util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
-			}
-		}
-		if strings.HasPrefix(p, "-ly") {
-			if len(p) == 3 {
-				opt.isLastYearMode = true
-				continue
-			} else {
-				util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
-			}
-		}
+		// if strings.HasPrefix(p, "-y") {
+		// 	if len(p) == 2 {
+		// 		opt.isDayOfWeekMode = true
+		// 		continue
+		// 	} else {
+		// 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+		// 	}
+		// }
+		// if strings.HasPrefix(p, "-e") {
+		// 	if len(p) == 2 {
+		// 		opt.isSequenceMode = true
+		// 		continue
+		// 	} else {
+		// 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+		// 	}
+		// }
+		// if strings.HasPrefix(p, "-ly") {
+		// 	if len(p) == 3 {
+		// 		opt.isLastYearMode = true
+		// 		continue
+		// 	} else {
+		// 		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
+		// 	}
+		// }
 		if strings.Contains(p, "m") {
+			// month mode
 			opt.isMonthMode = true
+
 			if len(p) == 7 {
 				if firstMonthStr == "" {
 					firstMonthStr = p[:6]
