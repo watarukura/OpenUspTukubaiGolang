@@ -64,7 +64,7 @@ func (c *cli) run(args []string) int {
 
 	option := &option{isDayOfWeekMode: false, isDiffMode: false, isSequenceMode: false, isLastYearMode: false, isMonthMode: false}
 	flags.BoolVar(&option.isDayOfWeekMode, "y", false, "day of week")
-	flags.BoolVar(&option.isSequenceMode, "e", false, "days seq")
+	flags.BoolVar(&option.isSequenceMode, "e", false, "output days sequencial")
 	flags.BoolVar(&option.isLastYearMode, "ly", false, "last year")
 
 	if err := flags.Parse(args[1:]); err != nil {
