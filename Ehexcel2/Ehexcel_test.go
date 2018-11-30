@@ -30,7 +30,7 @@ func TestPlusFileInput(t *testing.T) {
 		outStream.Reset()
 		errStream.Reset()
 
-		args := append([]string{"plus"}, strings.Split(c.input, " ")...)
+		args := append([]string{"Ehexcel"}, strings.Split(c.input, " ")...)
 		status := cli.run(args)
 		if status != util.ExitCodeOK {
 			t.Errorf("ExitStatus=%d, want %d", status, util.ExitCodeOK)

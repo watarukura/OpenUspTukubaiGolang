@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -65,6 +66,7 @@ func (c *cli) run(args []string) int {
 
 func validateParam(param []string, inStream io.Reader, opt *option) (records [][][]string) {
 	if len(param) < 5 || len(param)%3 != 2 {
+		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 		util.Fatal(errors.New("failed to read param: "+strconv.Itoa(len(param)%3)), util.ExitCodeFlagErr)
 	}
 
