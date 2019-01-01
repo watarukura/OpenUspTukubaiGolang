@@ -7,16 +7,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/360EntSecGroup-Skylar/excelize"
+	excelize "github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/mattn/go-shellwords"
 
-	"github.com/watarukura/OpenUspTukubaiGolang/util"
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 const usageText = `
@@ -64,8 +63,7 @@ func (c *cli) run(args []string) int {
 
 func validateParam(param []string, inStream io.Reader, opt *option) (records [][][]string) {
 	if len(param) < 5 || len(param)%3 != 2 {
-		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-		//util.Fatal(errors.New("failed to read param: "+strconv.Itoa(len(param)%3)), util.ExitCodeFlagErr)
+		util.Fatal(errors.New("failed to read param: "+strconv.Itoa(len(param)%3)), util.ExitCodeFlagErr)
 	}
 
 	var sheetNumber int

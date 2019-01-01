@@ -13,10 +13,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/mattn/go-shellwords"
+	xlsx "github.com/tealeg/xlsx"
 
-	"github.com/watarukura/OpenUspTukubaiGolang/util"
+	util "github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 const usageText = `
@@ -27,11 +27,11 @@ Usage of %s:
 type option struct {
 	templateXlsx string
 	sheetNumbers []int
-	startXYs     []string
-	startXs      []int
-	startYs      []int
-	inputFiles   []string
-	outputXlsx   string
+	// startXYs     []string
+	startXs    []int
+	startYs    []int
+	inputFiles []string
+	outputXlsx string
 }
 
 type cli struct {
@@ -50,9 +50,11 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{templateXlsx: "", sheetNumbers: make([]int, 0), startXYs: make([]string, 0), inputFiles: make([]string, 0), outputXlsx: ""}
+	option := &option{templateXlsx: "", sheetNumbers: make([]int, 0), startXs: make([]int, 0), startYs: make([]int, 0), inputFiles: make([]string, 0), outputXlsx: ""}
+	// fmt.Println(option)
 
 	records := validateParam(param, c.inStream, option)
+	// fmt.Println(option)
 	// fmt.Println("org: " + org)
 	// fmt.Println("dst: " + dst)
 	// fmt.Println("targetString: " + targetString)
@@ -65,7 +67,7 @@ func (c *cli) run(args []string) int {
 func validateParam(param []string, inStream io.Reader, opt *option) (records [][][]string) {
 	if len(param) < 5 || len(param)%3 != 2 {
 		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
-		//util.Fatal(errors.New("failed to read param: "+strconv.Itoa(len(param)%3)), util.ExitCodeFlagErr)
+		util.Fatal(errors.New("failed to read param: "+strconv.Itoa(len(param)%3)), util.ExitCodeFlagErr)
 	}
 
 	var sheetNumber int
@@ -74,29 +76,29 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 	re := regexp.MustCompile(`([A-Z]+)([0-9]+)$`)
 	for i, p := range param {
 		switch {
-		case i == 0:
+		case i == 0: // テンプレートとなるxlsxファイルのパス
 			opt.templateXlsx = p
-		case i == len(param)-1:
+		case i == len(param)-1: // 出力するxlsxファイルのパス
 			opt.outputXlsx = p
-		case i%3 == 1:
+		case i%3 == 1: // sheet番号を取得
 			sheetNumberStr := p
 			sheetNumber, err = strconv.Atoi(sheetNumberStr)
 			if err != nil {
 				util.Fatal(err, util.ExitCodeFlagErr)
 			}
 			opt.sheetNumbers = append(opt.sheetNumbers, sheetNumber)
-		case i%3 == 2:
+		case i%3 == 2: // 出力先のセル位置(x/y)
 			xyPoint = strings.ToUpper(p)
 			matches := re.FindStringSubmatch(xyPoint)
 			startXTitle, startYString := matches[1], matches[2]
-			startX := excelize.TitleToNumber(startXTitle)
+			startX := xlsx.ColLettersToIndex(startXTitle)
 			startY, err := strconv.Atoi(startYString)
 			if err != nil {
 				util.Fatal(errors.New("failed to read param: "+xyPoint), util.ExitCodeFlagErr)
 			}
 			opt.startXs = append(opt.startXs, startX)
-			opt.startYs = append(opt.startYs, startY)
-		case i%3 == 0:
+			opt.startYs = append(opt.startYs, startY-1)
+		case i%3 == 0: // xlsx内に取り込むファイル
 			inputFile := p
 			opt.inputFiles = append(opt.inputFiles, inputFile)
 		}
@@ -126,32 +128,28 @@ func validateParam(param []string, inStream io.Reader, opt *option) (records [][
 }
 
 func ehexcel(records [][][]string, opt *option) {
-	xlsx, err := excelize.OpenFile(opt.templateXlsx)
+	// xlsx, err := excl.Open(opt.templateXlsx)
+	templateXlsx, err := xlsx.OpenFile(opt.templateXlsx)
 	if err != nil {
 		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
+	sheets := templateXlsx.Sheets
+	// fmt.Println(opt.sheetNumbers)
 
 	for i, record := range records {
-		sheetName := xlsx.GetSheetName(opt.sheetNumbers[i])
+		sheet := sheets[(opt.sheetNumbers[i] - 1)]
 		for y, line := range record {
 			offsetY := y + opt.startYs[i]
 			for x, v := range line {
 				offsetX := x + opt.startXs[i]
-				axis := translateAxis(offsetX, offsetY)
-				xlsx.SetCellValue(sheetName, axis, v)
+				cell := sheet.Cell(offsetY, offsetX)
+				cell.SetValue(v)
 			}
 		}
 	}
 
-	err = xlsx.SaveAs(opt.outputXlsx)
+	err = templateXlsx.Save(opt.outputXlsx)
 	if err != nil {
 		util.Fatal(err, util.ExitCodeFileOpenErr)
 	}
-}
-
-func translateAxis(x int, y int) (axis string) {
-	xTitle := excelize.ToAlphaString(x)
-	yStr := strconv.Itoa(y)
-	axis = xTitle + yStr
-	return axis
 }
