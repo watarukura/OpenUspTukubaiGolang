@@ -1,2 +1,0 @@
-NAME usp_lab
-AGE 25

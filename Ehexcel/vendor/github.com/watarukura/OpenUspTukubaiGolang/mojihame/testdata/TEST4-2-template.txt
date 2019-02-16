@@ -1,5 +1,0 @@
-header %1
-## LABEL ##
-1st=%1 2nd=%2
-## LABEL ##
-footer %2

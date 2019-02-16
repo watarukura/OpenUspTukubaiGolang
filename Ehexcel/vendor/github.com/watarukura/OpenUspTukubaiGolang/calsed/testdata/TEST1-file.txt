@@ -1,2 +1,0 @@
-<td>NAME</td>
-<td>AGE</td>
