@@ -12,7 +12,7 @@ import (
 
 	"github.com/mattn/go-shellwords"
 
-	util "github.com/watarukura/OpenUspTukubaiGolang/util"
+	"github.com/watarukura/OpenUspTukubaiGolang/util"
 )
 
 const usageText = `
@@ -22,7 +22,7 @@ Usage of %s:
 
 type option struct {
 	nullCharacter  string
-	brankCharacter string
+	blankCharacter string
 	isScript       bool
 }
 
@@ -42,7 +42,7 @@ func (c *cli) run(args []string) int {
 		util.Fatal(err, util.ExitCodeFlagErr)
 	}
 	// fmt.Println(param)
-	option := &option{nullCharacter: "@", brankCharacter: " ", isScript: false}
+	option := &option{nullCharacter: "@", blankCharacter: " ", isScript: false}
 
 	org, dst, scriptString, targetString := validateParam(param, c.inStream, option)
 	// fmt.Println("org: " + org)
@@ -64,6 +64,7 @@ func (c *cli) run(args []string) int {
 func validateParam(param []string, inStream io.Reader, opt *option) (org string, dst string, scriptString string, targetString string) {
 	if len(param) < 2 || len(param) > 5 {
 		fmt.Fprintf(os.Stderr, usageText, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+		util.Fatal(errors.New("failed to read param"), util.ExitCodeFlagErr)
 	}
 
 	prev := ""
@@ -85,7 +86,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 		}
 		if strings.HasPrefix(p, "-s") {
 			if len(p) > 2 {
-				opt.brankCharacter = p[2:]
+				opt.blankCharacter = p[2:]
 			} else {
 				prev = "s"
 			}
@@ -179,7 +180,7 @@ func validateParam(param []string, inStream io.Reader, opt *option) (org string,
 func calsed(org string, dst string, targetString string, opt *option) (replacedBrank string) {
 	replaced := strings.Replace(targetString, org, dst, -1)
 	replacedNull := strings.Replace(replaced, opt.nullCharacter, "", -1)
-	replacedBrank = strings.Replace(replacedNull, opt.brankCharacter, " ", -1)
+	replacedBrank = strings.Replace(replacedNull, opt.blankCharacter, " ", -1)
 
 	return replacedBrank
 	// fmt.Println("replaced: " + replaced)

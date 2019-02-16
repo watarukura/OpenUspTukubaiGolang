@@ -1,0 +1,4 @@
+github.com/mattn/go-shellwords v1.0.3 h1:K/VxK7SZ+cvuPgFSLKi5QPI9Vr/ipOf4C1gN+ntueUk=
+github.com/mattn/go-shellwords v1.0.3/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
+github.com/watarukura/OpenUspTukubaiGolang v0.0.0-20190101144146-47c267814789 h1:dyad0uDO6+sJHadcdgwcWMq9JpJh0C/trV+mn10x2y8=
+github.com/watarukura/OpenUspTukubaiGolang v0.0.0-20190101144146-47c267814789/go.mod h1:6MLn12kWC56ep77o9U+NaS6HCwjgCdzqv5X1n8+ulnc=

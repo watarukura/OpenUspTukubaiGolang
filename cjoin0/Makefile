@@ -8,8 +8,7 @@ GOGET=$(GOCMD) get
 GOVET=$(GOCMD) vet
 GOLINT=golint
 GOX=gox
-DEPCMD=dep
-DEPENSURE=$(DEPCMD) ensure
+GOIMPORTS=goimports -w
 BINARY_NAME=cjoin0
 
 all: test clean build
@@ -21,16 +20,11 @@ test:
 		find . -type f -name "*.go" | grep -v "^./vendor" | xargs gofmt -d -e -s -w -l
 		$(GOLINT) $(go list ./... | grep -v /vendor/)
 		$(GOVET) $(go list ./... | grep -v /vendor/)
+		find . -type f -name "*.go" | grep -v "^./vendor" | xargs $(GOIMPORTS)
 		$(GOTEST) -v ./...
 clean:
 		$(GOCLEAN)
 		rm -rf bin/
-#run:
-#		$(GOBUILD) -o $(BINARY_NAME) -v ./...
-#		./$(BINARY_NAME)
-deps:
-		$(GOGET) -d -v .
-		$(DEPENSURE) -update
 
 ## Cross compilation
 #build-linux:

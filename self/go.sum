@@ -1,0 +1,7 @@
+github.com/mattn/go-shellwords v1.0.3/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
+github.com/watarukura/OpenUspTukubaiGolang v0.0.0-20190101144146-47c267814789 h1:dyad0uDO6+sJHadcdgwcWMq9JpJh0C/trV+mn10x2y8=
+github.com/watarukura/OpenUspTukubaiGolang v0.0.0-20190101144146-47c267814789/go.mod h1:6MLn12kWC56ep77o9U+NaS6HCwjgCdzqv5X1n8+ulnc=
+golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67 h1:ng3VDlRp5/DHpSWl02R4rM9I+8M2rhmsuLwAMmkLQWE=
+golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a h1:1BGLXjeY4akVXGgbC9HugT3Jv3hCI0z56oJR5vAMgBU=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
